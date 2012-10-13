@@ -27,24 +27,20 @@ public:
 	void mouseDown( MouseEvent event );
 	void update();
 	void draw();
-    void replaceContoursInCollection(vector< vector<cv::Point> > *contours, vector<Vec3f> *contourCollection);
-    void drawContours(vector<Vec3f> *contourCollection);
-    
+    Vec3f getLargestContour(vector< vector<cv::Point> > *contours);
+
 private:
     
     gl::Texture _texTrack;
-    cv::Mat     _cvMat;
-    Vec2f       _posRed;
-    Vec2f       _posGreen;
-    Vec2f       _posBlue;
     Surface8u   _surfTracking;
     
-    vector<Vec3f> _blobContoursR;
-    vector<Vec3f> _blobContoursG;
-    vector<Vec3f> _blobContoursB;
+    Vec3f       _blobR;
+    Vec3f       _blobG;
+    Vec3f       _blobB;
+
 };
 
-LCTrackerApp::LCTrackerApp()
+LCTrackerApp::LCTrackerApp() : _blobR(0,0,0), _blobG(0,0,0), _blobB(0,0,0)
 {
 
 };
@@ -54,9 +50,6 @@ void LCTrackerApp::setup()
     setWindowSize(640, 640);
     _surfTracking = loadImage(loadResource("sample_track_iphone_4.jpg"));
     _texTrack = gl::Texture(_surfTracking);
-    _blobContoursR.clear();
-    _blobContoursG.clear();
-    _blobContoursB.clear();
 
 }
 
@@ -137,21 +130,22 @@ void LCTrackerApp::update()
     cv::findContours(threshG, contoursG, CV_RETR_EXTERNAL, CV_CHAIN_APPROX_SIMPLE);
     cv::findContours(threshB, contoursB, CV_RETR_EXTERNAL, CV_CHAIN_APPROX_SIMPLE);
 
-    replaceContoursInCollection(&contoursR, &_blobContoursR);
-    replaceContoursInCollection(&contoursG, &_blobContoursG);
-    replaceContoursInCollection(&contoursB, &_blobContoursB);
-
+    _blobR = getLargestContour(&contoursR);
+    _blobG = getLargestContour(&contoursG);
+    _blobB = getLargestContour(&contoursB);
+    
     _texTrack = gl::Texture(_surfTracking);
 
 }
 
-void LCTrackerApp::replaceContoursInCollection(vector< vector<cv::Point> > *contours, vector<Vec3f> *contourCollection)
+Vec3f LCTrackerApp::getLargestContour(vector< vector<cv::Point> > *contours)
 {
-    contourCollection->clear();
-    
+
     static const float BlobSizeMin = 2.0f;
     static const float BlobSizeMax = 640.0f;
    
+    Vec3f largestContour = Vec3f::zero();
+    
     for (vector<vector<cv::Point> >::iterator it=contours->begin() ; it < contours->end(); it++ ){
         
         // center abd radius for current blob
@@ -165,28 +159,16 @@ void LCTrackerApp::replaceContoursInCollection(vector< vector<cv::Point> > *cont
 
         if (radius > BlobSizeMin && radius < BlobSizeMax) {
             
-            // Store the location and radius
-            contourCollection->push_back(Vec3f(center.x, center.y, radius));
-            
+            if(radius > largestContour.z){
+                largestContour = Vec3f(center.x, center.y, radius);
+            }
+
         }
         
     }
-
-}
-
-void LCTrackerApp::drawContours(vector<Vec3f> *contourCollection)
-{
-    // Only draw the biggest one we find
-    Vec3f largestContour = Vec3f::zero();
     
-    for (vector<Vec3f>::iterator it=contourCollection->begin() ; it < contourCollection->end(); it++ ){
-        Vec3f blob = *it;
-        if(blob.z > largestContour.z){
-            largestContour = blob;
-        }
-    }
-    
-    gl::drawStrokedCircle(Vec2f(largestContour.x, largestContour.y), largestContour.z);
+    return largestContour;
+
 }
 
 void LCTrackerApp::draw()
@@ -200,14 +182,44 @@ void LCTrackerApp::draw()
     
     // Draw white circles around the blobs
     gl::color(1.0, 0.0, 0.0);
-    drawContours(&_blobContoursR);
+    Vec2f posRed = Vec2f(_blobR.x, _blobR.y);
+    gl::drawStrokedCircle(posRed, _blobR.z);
     
     gl::color(0.0, 1.0, 0.0);
-    drawContours(&_blobContoursG);
+    Vec2f posGreen = Vec2f(_blobG.x, _blobG.y);
+    gl::drawStrokedCircle(Vec2f(posGreen.x, posGreen.y), _blobG.z);
 
     gl::color(0.0, 0.0, 1.0);
-    drawContours(&_blobContoursB);
+    Vec2f posBlue = Vec2f(_blobB.x, _blobB.y);
+    gl::drawStrokedCircle(Vec2f(posBlue.x, posBlue.y), _blobB.z);
     
+    
+    // Drawing the car direction (a black cross)
+    gl::color(0.0, 0.0, 0.0);
+    
+    // Draw the vector
+    gl::drawLine(posRed, posBlue);
+    
+    Vec2f vecCar(posRed.x - posBlue.x, posRed.y - posBlue.y);
+    float vecCarLength = vecCar.length();
+    vecCar.normalize();
+    
+    float theta = DegreesToRadians(90.0f);
+    float normX = cos(theta) * vecCar.x - sin(theta) * vecCar.y;
+    float normY = sin(theta) * vecCar.x + cos(theta) * vecCar.y;
+    Vec2f normCar(normX, normY);
+
+    normCar *= vecCarLength;
+    Vec2f halfVecCar = vecCar * (vecCarLength * 0.5);
+    
+    Vec2f normStart(posBlue.x + halfVecCar.x, posBlue.y + halfVecCar.y);
+    normStart -= (normCar * 0.5);
+    
+    // Draw the normal
+    gl::drawLine(normStart, normStart+normCar);
+    
+    
+    // Draw FPS
     float fps = getAverageFps();
     string fpsString = "fps: ";
     fpsString += boost::lexical_cast<string>((int)fps);

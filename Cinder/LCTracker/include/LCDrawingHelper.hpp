@@ -9,6 +9,8 @@
 #ifndef LCTracker_LCDrawingHelper_hpp
 #define LCTracker_LCDrawingHelper_hpp
 
+#define DegreesToRadians(x) (M_PI * x / 180.0)
+
 #define MIN3(x,y,z)  ((y) <= (z) ? \
 ((x) <= (y) ? (x) : (y)) \
 : \
