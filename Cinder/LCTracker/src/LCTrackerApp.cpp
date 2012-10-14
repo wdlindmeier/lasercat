@@ -75,7 +75,8 @@ _labelRangeRed(0),
 _labelRangeBlue(0),
 _labelRangeGreen(0),
 _labelValSat(0),
-_labelFPS(0)
+_labelFPS(0),
+_showTex(0)
 {
 
 };
