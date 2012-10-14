@@ -26,6 +26,8 @@
 		A988564F1629DFFC00D39CB7 /* sample_track_isight_2.png in Resources */ = {isa = PBXBuildFile; fileRef = A98856481629DFFC00D39CB7 /* sample_track_isight_2.png */; };
 		A98856531629F84A00D39CB7 /* sample_track_iphone_4.jpg in Resources */ = {isa = PBXBuildFile; fileRef = A98856511629F84A00D39CB7 /* sample_track_iphone_4.jpg */; };
 		A98856541629F84A00D39CB7 /* sample_track_isight_3.jpg in Resources */ = {isa = PBXBuildFile; fileRef = A98856521629F84A00D39CB7 /* sample_track_isight_3.jpg */; };
+		A9885734162B1C5200D39CB7 /* SimpleGUI.cpp in Sources */ = {isa = PBXBuildFile; fileRef = A9885733162B1C5200D39CB7 /* SimpleGUI.cpp */; };
+		A9885736162B1E0600D39CB7 /* pf_tempesta_seven.ttf in Resources */ = {isa = PBXBuildFile; fileRef = A9885735162B1E0600D39CB7 /* pf_tempesta_seven.ttf */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -113,6 +115,9 @@
 		A988569C162A003B00D39CB7 /* background_segm.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = background_segm.hpp; sourceTree = "<group>"; };
 		A988569D162A003B00D39CB7 /* tracking.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = tracking.hpp; sourceTree = "<group>"; };
 		A98856A0162A03C400D39CB7 /* LCDrawingHelper.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; name = LCDrawingHelper.hpp; path = ../include/LCDrawingHelper.hpp; sourceTree = "<group>"; };
+		A9885732162B1C4800D39CB7 /* SimpleGUI.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = SimpleGUI.h; path = ../include/SimpleGUI.h; sourceTree = "<group>"; };
+		A9885733162B1C5200D39CB7 /* SimpleGUI.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = SimpleGUI.cpp; path = ../src/SimpleGUI.cpp; sourceTree = "<group>"; };
+		A9885735162B1E0600D39CB7 /* pf_tempesta_seven.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; name = pf_tempesta_seven.ttf; path = ../resources/pf_tempesta_seven.ttf; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -139,6 +144,7 @@
 		080E96DDFE201D6D7F000001 /* Source */ = {
 			isa = PBXGroup;
 			children = (
+				A9885733162B1C5200D39CB7 /* SimpleGUI.cpp */,
 				A98856A0162A03C400D39CB7 /* LCDrawingHelper.hpp */,
 				00BAE6590E7ED9C10018A608 /* LCTrackerApp.cpp */,
 			);
@@ -196,6 +202,7 @@
 		29B97315FDCFA39411CA2CEA /* Headers */ = {
 			isa = PBXGroup;
 			children = (
+				A9885732162B1C4800D39CB7 /* SimpleGUI.h */,
 				32CA4F630368D1EE00C91783 /* LCTracker_Prefix.pch */,
 			);
 			name = Headers;
@@ -207,6 +214,7 @@
 				00CCAF14116A9FEE008396D5 /* CinderApp.icns */,
 				8D1107310486CEB800E47090 /* Info.plist */,
 				A988563B1629C66F00D39CB7 /* lc.png */,
+				A9885735162B1E0600D39CB7 /* pf_tempesta_seven.ttf */,
 				A98856441629DFFB00D39CB7 /* sample_track_iphone_1.jpg */,
 				A98856461629DFFB00D39CB7 /* sample_track_iphone_3.jpg */,
 				A98856511629F84A00D39CB7 /* sample_track_iphone_4.jpg */,
@@ -451,6 +459,7 @@
 				A988564F1629DFFC00D39CB7 /* sample_track_isight_2.png in Resources */,
 				A98856531629F84A00D39CB7 /* sample_track_iphone_4.jpg in Resources */,
 				A98856541629F84A00D39CB7 /* sample_track_isight_3.jpg in Resources */,
+				A9885736162B1E0600D39CB7 /* pf_tempesta_seven.ttf in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -462,6 +471,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				00BAE65A0E7ED9C10018A608 /* LCTrackerApp.cpp in Sources */,
+				A9885734162B1C5200D39CB7 /* SimpleGUI.cpp in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
