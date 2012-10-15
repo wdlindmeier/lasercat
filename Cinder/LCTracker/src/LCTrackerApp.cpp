@@ -23,7 +23,7 @@ using namespace std;
 using namespace gl;
 using namespace mowa::sgui;
 
-#define USE_KINECT  1
+#define USE_KINECT  0
 
 class LCTrackerApp : public AppBasic {
     
