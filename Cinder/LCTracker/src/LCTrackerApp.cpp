@@ -23,6 +23,8 @@ using namespace std;
 using namespace gl;
 using namespace mowa::sgui;
 
+#define USE_KINECT  1
+
 class LCTrackerApp : public AppBasic {
     
 public:
@@ -43,8 +45,12 @@ private:
     Vec3f       _blobR;
     Vec3f       _blobG;
     Vec3f       _blobB;
-    //Capture     _capture;
+
+#if USE_KINECT
     Kinect      _kinect;
+#else
+    Capture     _capture;
+#endif
 
     char        _showTex;
     SimpleGUI   *gui;
@@ -89,10 +95,14 @@ void LCTrackerApp::setup()
     _surfTracking = Surface8u(640, 480, false);
     _texTrack = gl::Texture(_surfTracking);
 
-    //_capture = Capture( 640, 480 );
-	//_capture.start();
+    
+#if USE_KINECT
     console() << "There are " << Kinect::getNumDevices() << " Kinects connected." << std::endl;
 	_kinect = Kinect( Kinect::Device() ); // the default Device implies the first Kinect connected
+#else
+    _capture = Capture( 640, 480 );
+	_capture.start();
+#endif
     
     // HSV hue mapped to 0-255 (not 0-360)
     MIN_R_TOP = 242;
@@ -177,11 +187,13 @@ void LCTrackerApp::keyDown( KeyEvent event )
 void LCTrackerApp::update()
 {
     
-//    if( _capture.checkNewFrame() ) {
-//        _surfTracking = _capture.getSurface();
-    
+#if USE_KINECT
     if( _kinect.checkNewVideoFrame() ){
 		_surfTracking = _kinect.getVideoImage();
+#else
+    if( _capture.checkNewFrame() ) {
+        _surfTracking = _capture.getSurface();
+#endif
 
         // Find the contours
         Vec2i imgSize = _surfTracking.getSize();
