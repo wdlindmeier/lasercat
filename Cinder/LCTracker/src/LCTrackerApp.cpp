@@ -13,6 +13,7 @@
 // Block
 #include "CinderOpenCv.h"
 #include "SimpleGUI.h"
+#include "Kinect.h"
 // LC
 #include "LCDrawingHelper.hpp"
 
@@ -42,7 +43,8 @@ private:
     Vec3f       _blobR;
     Vec3f       _blobG;
     Vec3f       _blobB;
-    Capture     _capture;
+    //Capture     _capture;
+    Kinect      _kinect;
 
     char        _showTex;
     SimpleGUI   *gui;
@@ -86,9 +88,12 @@ void LCTrackerApp::setup()
     setWindowSize(640, 480);
     _surfTracking = Surface8u(640, 480, false);
     _texTrack = gl::Texture(_surfTracking);
-    _capture = Capture( 640, 480 );
-	_capture.start();
-        
+
+    //_capture = Capture( 640, 480 );
+	//_capture.start();
+    console() << "There are " << Kinect::getNumDevices() << " Kinects connected." << std::endl;
+	_kinect = Kinect( Kinect::Device() ); // the default Device implies the first Kinect connected
+    
     // HSV hue mapped to 0-255 (not 0-360)
     MIN_R_TOP = 242;
     MAX_R_TOP = 255;
@@ -172,9 +177,11 @@ void LCTrackerApp::keyDown( KeyEvent event )
 void LCTrackerApp::update()
 {
     
-    if( _capture.checkNewFrame() ) {
-        
-        _surfTracking = _capture.getSurface();
+//    if( _capture.checkNewFrame() ) {
+//        _surfTracking = _capture.getSurface();
+    
+    if( _kinect.checkNewVideoFrame() ){
+		_surfTracking = _kinect.getVideoImage();
 
         // Find the contours
         Vec2i imgSize = _surfTracking.getSize();
