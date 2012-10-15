@@ -326,7 +326,7 @@ void LCTrackerApp::draw()
     
     glLineWidth(2.0f);
     
-    // Draw white circles around the blobs
+    // Draw circles around the blobs
     gl::color(1.0, 0.0, 0.0);
     Vec2f posRed = Vec2f(_blobR.x, _blobR.y);
     gl::drawStrokedCircle(posRed, _blobR.z);

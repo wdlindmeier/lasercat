@@ -11,6 +11,6 @@
 *.la
 *.a
 
-Cinder/LCTracker/xcode/build
-Cinder/LCTracker/xcode/LCTracker.xcodeproj/xcuserdata/*.xcuserdatad
-Cinder/LCTracker/xcode/LCTracker.xcodeproj/project.xcworkspace
+Cinder/*/xcode/build
+Cinder/*/xcode/LCTracker.xcodeproj/xcuserdata/*.xcuserdatad
+Cinder/*/xcode/LCTracker.xcodeproj/project.xcworkspace
