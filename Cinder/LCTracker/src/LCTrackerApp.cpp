@@ -96,15 +96,12 @@ private:
     
     LaserMode   _laserMode;
     
-    ColorConstraint _ccRedTop;
-    ColorConstraint _ccRedBottom;
+//    ColorConstraint _ccRedTop;
+//    ColorConstraint _ccRedBottom;
+    ColorConstraint _ccRed;
     ColorConstraint _ccBlue;
     ColorConstraint _ccGreen;
-    
-    LabelControl *_labelRangeRed;
-    LabelControl *_labelRangeBlue;
-    LabelControl *_labelRangeGreen;
-    LabelControl *_labelValSat;
+
     LabelControl *_labelFPS;
     
 };
@@ -113,10 +110,6 @@ LCTrackerApp::LCTrackerApp() :
 _blobR(0,0,0),
 _blobG(0,0,0),
 _blobB(0,0,0),
-_labelRangeRed(0),
-_labelRangeBlue(0),
-_labelRangeGreen(0),
-_labelValSat(0),
 _labelFPS(0),
 _showTex(0)
 {
@@ -165,8 +158,9 @@ void LCTrackerApp::setup()
     // HSV hue mapped to 0-255 (not 0-360)
 
     // TODO: Update w/ Orange / Green / Violet
-    _ccRedTop = ColorConstraintMake(238, 255, 108, 255, 201, 255);
-    _ccRedBottom = ColorConstraintMake(0, 24, 110, 255, 285, 255);
+//    _ccRedTop = ColorConstraintMake(238, 255, 108, 255, 201, 255);
+//    _ccRedBottom = ColorConstraintMake(0, 24, 110, 255, 285, 255);
+    _ccRed = ColorConstraintMake(0, 24, 108, 255, 201, 255);
     _ccGreen = ColorConstraintMake(106, 130, 0, 255, 222, 255);
     _ccBlue = ColorConstraintMake(89, 150, 167, 255, 179, 255);
 
@@ -176,6 +170,7 @@ void LCTrackerApp::setup()
 	gui->addLabel("Color Ranges");
 
     // Red
+    /*
     gui->addParam("Red Top Min Hue", &_ccRedTop.hueMin, 0, 255, _ccRedTop.hueMin);
     gui->addParam("Red Top Max Hue", &_ccRedTop.hueMax, 0, 255, _ccRedTop.hueMax);
     gui->addParam("Red Top Min Sat", &_ccRedTop.satMin, 0, 255, _ccRedTop.satMin);
@@ -189,7 +184,15 @@ void LCTrackerApp::setup()
     gui->addParam("Red Bottom Max Sat", &_ccRedBottom.satMax, 0, 255, _ccRedBottom.satMax);
     gui->addParam("Red Bottom Min Val", &_ccRedBottom.valMin, 0, 255, _ccRedBottom.valMin);
     gui->addParam("Red Bottom Max Val", &_ccRedBottom.valMax, 0, 255, _ccRedBottom.valMax);
+    */
     
+    gui->addParam("Red Min Hue", &_ccRed.hueMin, 0, 255, _ccRed.hueMin);
+    gui->addParam("Red Max Hue", &_ccRed.hueMax, 0, 255, _ccRed.hueMax);
+    gui->addParam("Red Min Sat", &_ccRed.satMin, 0, 255, _ccRed.satMin);
+    gui->addParam("Red Max Sat", &_ccRed.satMax, 0, 255, _ccRed.satMax);
+    gui->addParam("Red Min Val", &_ccRed.valMin, 0, 255, _ccRed.valMin);
+    gui->addParam("Red Max Val", &_ccRed.valMax, 0, 255, _ccRed.valMax);
+
     gui->addParam("Green Min Hue", &_ccGreen.hueMin, 0, 255, _ccGreen.hueMin);
     gui->addParam("Green Max Hue", &_ccGreen.hueMax, 0, 255, _ccGreen.hueMax);
     gui->addParam("Green Min Sat", &_ccGreen.satMin, 0, 255, _ccGreen.satMin);
@@ -212,12 +215,17 @@ void LCTrackerApp::setup()
 
 void LCTrackerApp::outputColors()
 {
+/*
     console() << "ccRedTop: ";
     LogColorConstraint(_ccRedTop);
     
     console() << "ccRedBottom: ";
     LogColorConstraint(_ccRedBottom);
-    
+*/
+
+    console() << "ccRed: ";
+    LogColorConstraint(_ccRed);
+
     console() << "ccGreen: ";
     LogColorConstraint(_ccGreen);
     
@@ -288,6 +296,7 @@ void LCTrackerApp::update()
                 
                 ColorHSV hsv = RGBtoHSV(rgb);
 
+                /*
                 // Check Red (top)
                 if(hsv.hue >= _ccRedTop.hueMin && hsv.hue <= _ccRedTop.hueMax &&
                    hsv.val >= _ccRedTop.valMin && hsv.val <= _ccRedTop.valMax &&
@@ -302,22 +311,31 @@ void LCTrackerApp::update()
 
 
                     chR.setValue(px, 255);
-
+                */
+                
+                // Check Blue
+                if(hsv.hue >= _ccBlue.hueMin && hsv.hue <= _ccBlue.hueMax &&
+                     hsv.val >= _ccBlue.valMin && hsv.val <= _ccBlue.valMax &&
+                     hsv.sat >= _ccBlue.satMin && hsv.sat <= _ccBlue.satMax){
+                
+                    chB.setValue(px, 255);
+                    
                 // Check Green
                 }else if(hsv.hue >= _ccGreen.hueMin && hsv.hue <= _ccGreen.hueMax &&
-                         hsv.val >= _ccGreen.valMin && hsv.val <= _ccGreen.valMax &&
-                         hsv.sat >= _ccGreen.satMin && hsv.sat <= _ccGreen.satMax){
-
-
+                     hsv.val >= _ccGreen.valMin && hsv.val <= _ccGreen.valMax &&
+                     hsv.sat >= _ccGreen.satMin && hsv.sat <= _ccGreen.satMax){
+                
+                
                     chG.setValue(px, 255);
+                
+                // Check Red
+                }else if(hsv.hue >= _ccRed.hueMin && hsv.hue <= _ccRed.hueMax &&
+                   hsv.val >= _ccRed.valMin && hsv.val <= _ccRed.valMax &&
+                   hsv.sat >= _ccRed.satMin && hsv.sat <= _ccRed.satMax){
                     
-                // Check Blue
-                }else if(hsv.hue >= _ccBlue.hueMin && hsv.hue <= _ccBlue.hueMax &&
-                         hsv.val >= _ccBlue.valMin && hsv.val <= _ccBlue.valMax &&
-                         hsv.sat >= _ccBlue.satMin && hsv.sat <= _ccBlue.satMax){
-
-                    chB.setValue(px, 255);
+                    chR.setValue(px, 255);
                 }
+
                 
                 x++;
             }
@@ -397,44 +415,55 @@ void LCTrackerApp::draw()
     
     glLineWidth(2.0f);
     
-    // Draw circles around the blobs
-    gl::color(1.0, 0.0, 0.0);
-    Vec2f posRed = Vec2f(_blobR.x, _blobR.y);
-    gl::drawStrokedCircle(posRed, _blobR.z);
+    bool drawVec = true;
+    Vec2f posRed, posGreen, posBlue;
     
-    gl::color(0.0, 1.0, 0.0);
-    Vec2f posGreen = Vec2f(_blobG.x, _blobG.y);
-    gl::drawStrokedCircle(Vec2f(posGreen.x, posGreen.y), _blobG.z);
+    // Draw circles around the blobs
+    
+    if(_blobR != Vec3f::zero()){
+        gl::color(1.0, 0.0, 0.0);
+        posRed = Vec2f(_blobR.x, _blobR.y);
+        gl::drawStrokedCircle(posRed, _blobR.z);
+    }else{ drawVec = false; }
+    
+    if(_blobG != Vec3f::zero()){
+        gl::color(0.0, 1.0, 0.0);
+        posGreen = Vec2f(_blobG.x, _blobG.y);
+        gl::drawStrokedCircle(Vec2f(posGreen.x, posGreen.y), _blobG.z);
+    }
 
-    gl::color(0.0, 0.0, 1.0);
-    Vec2f posBlue = Vec2f(_blobB.x, _blobB.y);
-    gl::drawStrokedCircle(Vec2f(posBlue.x, posBlue.y), _blobB.z);
+    if(_blobB != Vec3f::zero()){
+        gl::color(0.0, 0.0, 1.0);
+        posBlue = Vec2f(_blobB.x, _blobB.y);
+        gl::drawStrokedCircle(Vec2f(posBlue.x, posBlue.y), _blobB.z);
+    }else{ drawVec = false; }
     
     
     // Drawing the car direction (a cross)
     gl::color(1.0f, 1.0f, 1.0f);
     
     // Draw the vector
-    gl::drawLine(posRed, posBlue);
-    
-    Vec2f vecCar(posRed.x - posBlue.x, posRed.y - posBlue.y);
-    float vecCarLength = vecCar.length();
-    vecCar.normalize();
-    
-    float theta = DegreesToRadians(90.0f);
-    float normX = cos(theta) * vecCar.x - sin(theta) * vecCar.y;
-    float normY = sin(theta) * vecCar.x + cos(theta) * vecCar.y;
-    Vec2f normCar(normX, normY);
+    if(drawVec){
+        gl::drawLine(posRed, posBlue);
+        
+        Vec2f vecCar(posRed.x - posBlue.x, posRed.y - posBlue.y);
+        float vecCarLength = vecCar.length();
+        vecCar.normalize();
+        
+        float theta = DegreesToRadians(90.0f);
+        float normX = cos(theta) * vecCar.x - sin(theta) * vecCar.y;
+        float normY = sin(theta) * vecCar.x + cos(theta) * vecCar.y;
+        Vec2f normCar(normX, normY);
 
-    normCar *= vecCarLength;
-    Vec2f halfVecCar = vecCar * (vecCarLength * 0.5);
-    
-    Vec2f normStart(posBlue.x + halfVecCar.x, posBlue.y + halfVecCar.y);
-    normStart -= (normCar * 0.5);
-    
-    // Draw the normal
-    gl::drawLine(normStart, normStart+normCar);
-    
+        normCar *= vecCarLength;
+        Vec2f halfVecCar = vecCar * (vecCarLength * 0.5);
+        
+        Vec2f normStart(posBlue.x + halfVecCar.x, posBlue.y + halfVecCar.y);
+        normStart -= (normCar * 0.5);
+        
+        // Draw the normal
+        gl::drawLine(normStart, normStart+normCar);
+    }
 }
 
 
