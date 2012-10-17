@@ -35,6 +35,9 @@ public:
     void update(const Vec2f &posLaser);
     const Vec2f getTrackerA(){ return _posTrackerA; };
     const Vec2f getTrackerB(){ return _posTrackerB; };
+    const Vec2f getCenter(){ return _center; };
+    const Vec2f getDirection(){ return _n; };
+    void setLightsOn(bool isOn){ _isLightsOn = isOn; };
     
 protected:
     Vec2f normalBetweenTrackingPoints();
@@ -43,6 +46,7 @@ protected:
     Vec2f _v;
     Vec2f _n;
     Vec2f _center;
+    bool  _isLightsOn;
 };
 
 #endif /* defined(__CarSim__Car__) */

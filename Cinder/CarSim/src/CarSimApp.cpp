@@ -15,9 +15,23 @@ class CarSimApp : public AppBasic {
 	void update();
 	void draw();
     void resetCar();
+    void startTrick();
+    void stopTricks();
+    void doTrick0();
+    void doTrick1();
+    
     Car _car;
     Vec2f _posLaser;
+    
+    bool _isDoingTrick;
+    int  _trickFrame;
+    int _trickNum;
+
 };
+
+static const float TrickDistance = 150.0f;
+static const int TrickFrames = 60;
+static const int NumTricks = 2;
 
 void CarSimApp::setup()
 {
@@ -41,27 +55,83 @@ void CarSimApp::resetCar()
 
 void CarSimApp::mouseDrag( MouseEvent event )
 {
-    _posLaser = event.getPos();
+    if(!_isDoingTrick){
+        _posLaser = event.getPos();
+    }
 }
 
 void CarSimApp::mouseDown( MouseEvent event )
 {
-    _posLaser = event.getPos();
+    if(!_isDoingTrick){
+        _posLaser = event.getPos();
+    }
 }
 
 void CarSimApp::keyDown( KeyEvent event )
 {
     if(event.getCode() == KeyEvent::KEY_SPACE){
         resetCar();
+    }else if(event.getCode() == KeyEvent::KEY_t){
+        startTrick();
     }
+}
+
+void CarSimApp::startTrick()
+{
+    _trickFrame = 0;
+    _trickNum = arc4random() % 2;
+    _isDoingTrick = true;
+
+    console() << "starting trick " << _trickNum << "\n";
+}
+
+void CarSimApp::stopTricks()
+{
+    _car.setLightsOn(_trickFrame % 4 < 2);
+    _trickFrame = 0;
+    _isDoingTrick = false;
 }
 
 void CarSimApp::update()
 {
     // Tell the car to go somewhere...
+    if(_isDoingTrick){
+        if(_trickFrame < TrickFrames){
+            switch (_trickNum) {
+                case 0:
+                    doTrick0();
+                    break;
+                case 1:
+                    doTrick1();
+                    break;
+                default:
+                    console() << "couldnt find trick " << _trickNum << "\n";
+                    break;
+            }
+            _trickFrame++;
+        }else{
+            stopTricks();
+        }
+    }
     
     _car.update(_posLaser);
+    
+}
 
+void CarSimApp::doTrick0()
+{
+    // Blink Lights
+    _car.setLightsOn(_trickFrame % 4 < 2);
+
+}
+
+void CarSimApp::doTrick1()
+{
+    // Drive in a circle
+    Vec2f center = _car.getCenter();
+    float pointerX = center.x + cos(_trickFrame * ((M_PI*2)/(float)TrickFrames)) * TrickDistance;
+    float pointerY = center.y + sin(_trickFrame * ((M_PI*2)/(float)TrickFrames)) * TrickDistance;
+    _posLaser = Vec2f(pointerX, pointerY);
 }
 
 void CarSimApp::draw()

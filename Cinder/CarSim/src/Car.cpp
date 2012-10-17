@@ -14,6 +14,7 @@ Car::Car(const Vec2f &initialPosition, const Vec2f &initialDirection)
 {
     app::console() << "initialPosition: " << initialPosition << " initialDirection: " << initialDirection << "\n";
     setPositionAndDirection(initialPosition, initialDirection);
+    _isLightsOn = true;
 }
 
 void Car::setPositionAndDirection(const Vec2f &initialPosition, const Vec2f &initialDirection)
@@ -39,11 +40,13 @@ void Car::setPositionAndDirection(const Vec2f &initialPosition, const Vec2f &ini
 void Car::draw()
 {
     
-    gl::color(0, 1, 0);
-    gl::drawSolidCircle(_posTrackerA, 10.0f);
-    
-    gl::color(0, 0, 1);
-    gl::drawSolidCircle(_posTrackerB, 10.0f);
+    if(_isLightsOn){
+        gl::color(0, 1, 0);
+        gl::drawSolidCircle(_posTrackerA, 10.0f);
+        
+        gl::color(0, 0, 1);
+        gl::drawSolidCircle(_posTrackerB, 10.0f);
+    }
     
     glLineWidth(1);
 

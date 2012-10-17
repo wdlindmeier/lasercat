@@ -100,7 +100,25 @@ void LCTrackerApp::setup()
     console() << "There are " << Kinect::getNumDevices() << " Kinects connected." << std::endl;
 	_kinect = Kinect( Kinect::Device() ); // the default Device implies the first Kinect connected
 #else
-    _capture = Capture( 640, 480 );
+    
+    // list out the devices
+    Capture::DeviceRef useDevice;
+    bool useDefaultDevice = true;
+	std::vector<Capture::DeviceRef> devices( Capture::getDevices() );
+	for( std::vector<Capture::DeviceRef>::const_iterator deviceIt = devices.begin(); deviceIt != devices.end(); ++deviceIt ) {
+        Capture::DeviceRef device = *deviceIt;
+        console() << "Found Device " << device->getName() << " ID: " << device->getUniqueId() << std::endl;
+        
+        if( device->checkAvailable() ) {
+            useDevice = device;
+            useDefaultDevice = false;
+        }
+	}
+    if(useDefaultDevice){
+        _capture = Capture( 640, 480 );
+    }else{
+        _capture = Capture( 640, 480, useDevice );
+    }
 	_capture.start();
 #endif
     
