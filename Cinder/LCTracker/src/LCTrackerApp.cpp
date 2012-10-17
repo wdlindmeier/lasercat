@@ -1,3 +1,5 @@
+#define USE_KINECT  0
+
 #include "cinder/app/AppBasic.h"
 #include "cinder/app/KeyEvent.h"
 #include "cinder/gl/gl.h"
@@ -13,7 +15,11 @@
 // Block
 #include "CinderOpenCv.h"
 #include "SimpleGUI.h"
+
+#if USE_KINECT
 #include "Kinect.h"
+#endif 
+
 // LC
 #include "LCDrawingHelper.hpp"
 
@@ -23,7 +29,38 @@ using namespace std;
 using namespace gl;
 using namespace mowa::sgui;
 
-#define USE_KINECT  0
+typedef enum LaserModes {
+    LaserModeGreen,
+    LaserModeRed,
+    LaserModeBlue
+} LaserMode;
+
+typedef struct {
+    int hueMin;
+    int hueMax;
+    int valMin;
+    int valMax;
+    int satMin;
+    int satMax;
+} ColorConstraint;
+
+static inline void LogColorConstraint(ColorConstraint c)
+{
+    console() << "minHue: " << c.hueMin << " maxHue: " << c.hueMax << " minSat: " << c.satMin << " maxSat: " << c.satMax << " minVal: " << c.valMin << " maxVal: " << c.valMax << "\n";
+}
+
+static inline ColorConstraint ColorConstraintMake(int minHue, int maxHue, int minSat, int maxSat, int minVal, int maxVal)
+{
+    ColorConstraint c;
+    c.hueMin = minHue;
+    c.hueMax = maxHue;
+    c.satMin = minSat;
+    c.satMax = maxSat;
+    c.valMin = minVal;
+    c.valMax = maxVal;
+    return c;
+}
+
 
 class LCTrackerApp : public AppBasic {
     
@@ -31,11 +68,13 @@ public:
     
     LCTrackerApp();
 	void setup();
+    void shutdown();
 	void keyDown( KeyEvent event );
 	void update();
 	void draw();
     void updateLabels();
     Vec3f getLargestContour(vector< vector<cv::Point> > *contours);
+    void outputColors();
 
 private:
     
@@ -55,17 +94,12 @@ private:
     char        _showTex;
     SimpleGUI   *gui;
     
-    // Color Ranges
-    int MIN_R_TOP;
-    int MAX_R_TOP;
-    int MIN_R_BOTTOM;
-    int MAX_R_BOTTOM;
-    int MIN_G;
-    int MAX_G;
-    int MIN_B;
-    int MAX_B;
-    int MIN_VAL;
-    int MIN_SAT;
+    LaserMode   _laserMode;
+    
+    ColorConstraint _ccRedTop;
+    ColorConstraint _ccRedBottom;
+    ColorConstraint _ccBlue;
+    ColorConstraint _ccGreen;
     
     LabelControl *_labelRangeRed;
     LabelControl *_labelRangeBlue;
@@ -89,12 +123,18 @@ _showTex(0)
 
 };
 
+void LCTrackerApp::shutdown()
+{
+    outputColors();
+}
+
 void LCTrackerApp::setup()
 {
     setWindowSize(640, 480);
     _surfTracking = Surface8u(640, 480, false);
     _texTrack = gl::Texture(_surfTracking);
 
+    _laserMode = LaserModeGreen;
     
 #if USE_KINECT
     console() << "There are " << Kinect::getNumDevices() << " Kinects connected." << std::endl;
@@ -123,71 +163,71 @@ void LCTrackerApp::setup()
 #endif
     
     // HSV hue mapped to 0-255 (not 0-360)
-    MIN_R_TOP = 242;
-    MAX_R_TOP = 255;
-    MIN_R_BOTTOM = 0;
-    MAX_R_BOTTOM = 18;
-    MIN_G = 58;
-    MAX_G = 102;
-    MIN_B = 124;
-    MAX_B = 179;
-    MIN_VAL = 142;
-    MIN_SAT = 140;
+
+    // TODO: Update w/ Orange / Green / Violet
+    _ccRedTop = ColorConstraintMake(238, 255, 108, 255, 201, 255);
+    _ccRedBottom = ColorConstraintMake(0, 24, 110, 255, 285, 255);
+    _ccGreen = ColorConstraintMake(106, 130, 0, 255, 222, 255);
+    _ccBlue = ColorConstraintMake(89, 150, 167, 255, 179, 255);
 
     // GUI
     gui = new SimpleGUI(this);
     gui->lightColor = ColorA(1, 1, 0, 1);
 	gui->addLabel("Color Ranges");
 
-    gui->addParam("MIN_R_TOP", &MIN_R_TOP, 0, 255, MIN_R_TOP);
-    gui->addParam("MAX_R_TOP", &MAX_R_TOP, 0, 255, MAX_R_TOP);
-    gui->addParam("MIN_R_BOTTOM", &MIN_R_BOTTOM, 0, 255, MIN_R_BOTTOM);
-    gui->addParam("MAX_R_BOTTOM", &MAX_R_BOTTOM, 0, 255, MAX_R_BOTTOM);
+    // Red
+    gui->addParam("Red Top Min Hue", &_ccRedTop.hueMin, 0, 255, _ccRedTop.hueMin);
+    gui->addParam("Red Top Max Hue", &_ccRedTop.hueMax, 0, 255, _ccRedTop.hueMax);
+    gui->addParam("Red Top Min Sat", &_ccRedTop.satMin, 0, 255, _ccRedTop.satMin);
+    gui->addParam("Red Top Max Sat", &_ccRedTop.satMax, 0, 255, _ccRedTop.satMax);
+    gui->addParam("Red Top Min Val", &_ccRedTop.valMin, 0, 255, _ccRedTop.valMin);
+    gui->addParam("Red Top Max Val", &_ccRedTop.valMax, 0, 255, _ccRedTop.valMax);
     
-    gui->addParam("MIN_G", &MIN_G, 0, 255, MIN_G);
-    gui->addParam("MAX_G", &MAX_G, 0, 255, MAX_G);
+    gui->addParam("Red Bottom Min Hue", &_ccRedBottom.hueMin, 0, 255, _ccRedBottom.hueMin);
+    gui->addParam("Red Bottom Max Hue", &_ccRedBottom.hueMax, 0, 255, _ccRedBottom.hueMax);
+    gui->addParam("Red Bottom Min Sat", &_ccRedBottom.satMin, 0, 255, _ccRedBottom.satMin);
+    gui->addParam("Red Bottom Max Sat", &_ccRedBottom.satMax, 0, 255, _ccRedBottom.satMax);
+    gui->addParam("Red Bottom Min Val", &_ccRedBottom.valMin, 0, 255, _ccRedBottom.valMin);
+    gui->addParam("Red Bottom Max Val", &_ccRedBottom.valMax, 0, 255, _ccRedBottom.valMax);
     
-    gui->addParam("MIN_B", &MIN_B, 0, 255, MIN_B);
-    gui->addParam("MAX_B", &MAX_B, 0, 255, MAX_B);
-    
-    gui->addParam("MIN_VAL", &MIN_VAL, 0, 255, MIN_VAL);
-    gui->addParam("MIN_SAT", &MIN_SAT, 0, 255, MIN_SAT);
+    gui->addParam("Green Min Hue", &_ccGreen.hueMin, 0, 255, _ccGreen.hueMin);
+    gui->addParam("Green Max Hue", &_ccGreen.hueMax, 0, 255, _ccGreen.hueMax);
+    gui->addParam("Green Min Sat", &_ccGreen.satMin, 0, 255, _ccGreen.satMin);
+    gui->addParam("Green Max Sat", &_ccGreen.satMax, 0, 255, _ccGreen.satMax);
+    gui->addParam("Green Min Val", &_ccGreen.valMin, 0, 255, _ccGreen.valMin);
+    gui->addParam("Green Max Val", &_ccGreen.valMax, 0, 255, _ccGreen.valMax);
 
-    _labelRangeRed = gui->addLabel("Red Range");
-    _labelRangeGreen = gui->addLabel("Green Range");
-    _labelRangeBlue = gui->addLabel("Blue Range");
-    _labelValSat = gui->addLabel("Val Sat");
+    gui->addParam("Blue Min Hue", &_ccBlue.hueMin, 0, 255, _ccBlue.hueMin);
+    gui->addParam("Blue Max Hue", &_ccBlue.hueMax, 0, 255, _ccBlue.hueMax);
+    gui->addParam("Blue Min Sat", &_ccBlue.satMin, 0, 255, _ccBlue.satMin);
+    gui->addParam("Blue Max Sat", &_ccBlue.satMax, 0, 255, _ccBlue.satMax);
+    gui->addParam("Blue Min Val", &_ccBlue.valMin, 0, 255, _ccBlue.valMin);
+    gui->addParam("Blue Max Val", &_ccBlue.valMax, 0, 255, _ccBlue.valMax);
+
     _labelFPS = gui->addLabel("FPS");
     
     updateLabels();
     
 }
 
+void LCTrackerApp::outputColors()
+{
+    console() << "ccRedTop: ";
+    LogColorConstraint(_ccRedTop);
+    
+    console() << "ccRedBottom: ";
+    LogColorConstraint(_ccRedBottom);
+    
+    console() << "ccGreen: ";
+    LogColorConstraint(_ccGreen);
+    
+    console() << "ccBlue: ";
+    LogColorConstraint(_ccBlue);
+}
+
 void LCTrackerApp::updateLabels()
 {
-    if(_labelValSat){
-        string valsat = "Val: ";
-        valsat  += boost::lexical_cast<string>(MIN_VAL);
-        valsat  += " Sat: ";
-        valsat  += boost::lexical_cast<string>(MIN_SAT);
-        _labelValSat->setText(valsat);
-    }
 
-    if(_labelRangeRed){
-        string redRange = string("Red Range: ")+ boost::lexical_cast<string>(MIN_R_TOP) + string(" - ") + boost::lexical_cast<string>(MAX_R_BOTTOM);
-        _labelRangeRed->setText(redRange);
-    }
-    
-    if(_labelRangeBlue){
-        string blueRange = string("Blue Range: ")+ boost::lexical_cast<string>(MIN_B) + string(" - ") + boost::lexical_cast<string>(MAX_B);
-        _labelRangeBlue->setText(blueRange);
-    }
-
-    if(_labelRangeGreen){
-        string greenRange = string("Green Range: ")+ boost::lexical_cast<string>(MIN_G) + string(" - ") + boost::lexical_cast<string>(MAX_G);
-        _labelRangeGreen->setText(greenRange);
-    }
-    
     if(_labelFPS){
         float fps = getAverageFps();
         string fpsString = "FPS: ";
@@ -199,7 +239,17 @@ void LCTrackerApp::updateLabels()
 
 void LCTrackerApp::keyDown( KeyEvent event )
 {
-    _showTex = event.getChar();
+    char c = event.getChar();
+
+    if(c == KeyEvent::KEY_c){
+        
+        outputColors();
+        
+    }else if(c == KeyEvent::KEY_r || c == KeyEvent::KEY_g || c == KeyEvent::KEY_b || c == KeyEvent::KEY_SPACE){
+        
+        _showTex = event.getChar();
+        
+    }
 }
 
 void LCTrackerApp::update()
@@ -238,33 +288,36 @@ void LCTrackerApp::update()
                 
                 ColorHSV hsv = RGBtoHSV(rgb);
 
-                // Check if it's bright enough and saturated enough to be a tracking pixel
-                if(hsv.val >= MIN_VAL && hsv.sat >= MIN_SAT){
+                // Check Red (top)
+                if(hsv.hue >= _ccRedTop.hueMin && hsv.hue <= _ccRedTop.hueMax &&
+                   hsv.val >= _ccRedTop.valMin && hsv.val <= _ccRedTop.valMax &&
+                   hsv.sat >= _ccRedTop.satMin && hsv.sat <= _ccRedTop.satMax){
+
+                    chR.setValue(px, 255);
+
+                // Check Red (bottom)
+                }else if(hsv.hue >= _ccRedBottom.hueMin && hsv.hue <= _ccRedBottom.hueMax &&
+                         hsv.val >= _ccRedBottom.valMin && hsv.val <= _ccRedBottom.valMax &&
+                         hsv.sat >= _ccRedBottom.satMin && hsv.sat <= _ccRedBottom.satMax){
+
+
+                    chR.setValue(px, 255);
+
+                // Check Green
+                }else if(hsv.hue >= _ccGreen.hueMin && hsv.hue <= _ccGreen.hueMax &&
+                         hsv.val >= _ccGreen.valMin && hsv.val <= _ccGreen.valMax &&
+                         hsv.sat >= _ccGreen.satMin && hsv.sat <= _ccGreen.satMax){
+
+
+                    chG.setValue(px, 255);
                     
-                    // Check Red (top)
-                    if(hsv.hue >= MIN_R_TOP && hsv.hue <= MAX_R_TOP){
+                // Check Blue
+                }else if(hsv.hue >= _ccBlue.hueMin && hsv.hue <= _ccBlue.hueMax &&
+                         hsv.val >= _ccBlue.valMin && hsv.val <= _ccBlue.valMax &&
+                         hsv.sat >= _ccBlue.satMin && hsv.sat <= _ccBlue.satMax){
 
-                        chR.setValue(px, 255);
-
-                    // Check Red (bottom)
-                    }else if(hsv.hue >= MIN_R_BOTTOM && hsv.hue <= MAX_R_BOTTOM){
-
-                        chR.setValue(px, 255);
-
-                    // Check Green
-                    }else if(hsv.hue >= MIN_G && hsv.hue <= MAX_G){
-
-                        chG.setValue(px, 255);
-                        
-                    // Check Blue
-                    }else if(hsv.hue >= MIN_B && hsv.hue <= MAX_B){
-
-                        chB.setValue(px, 255);
-                    }
-                    
-                    
+                    chB.setValue(px, 255);
                 }
-
                 
                 x++;
             }
