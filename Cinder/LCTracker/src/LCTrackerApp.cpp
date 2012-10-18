@@ -1,4 +1,4 @@
-#define USE_KINECT  0
+#include <fstream>
 
 #include "cinder/app/AppBasic.h"
 #include "cinder/app/KeyEvent.h"
@@ -10,15 +10,13 @@
 #include "cinder/Surface.h"
 #include "cinder/Area.h"
 #include "cinder/Capture.h"
+
 // Boost
 #include <boost/lexical_cast.hpp>
+
 // Block
 #include "CinderOpenCv.h"
 #include "SimpleGUI.h"
-
-#if USE_KINECT
-#include "Kinect.h"
-#endif 
 
 // LC
 #include "LCDrawingHelper.hpp"
@@ -75,6 +73,8 @@ public:
     void updateLabels();
     Vec3f getLargestContour(vector< vector<cv::Point> > *contours);
     void outputColors();
+    void saveColorSettings();
+    void readColorSettings();
 
 private:
     
@@ -85,19 +85,14 @@ private:
     Vec3f       _blobG;
     Vec3f       _blobB;
 
-#if USE_KINECT
-    Kinect      _kinect;
-#else
     Capture     _capture;
-#endif
 
     char        _showTex;
     SimpleGUI   *gui;
-    
+    bool        _isShowingGUI;
     LaserMode   _laserMode;
+    string      _colorPath;
     
-//    ColorConstraint _ccRedTop;
-//    ColorConstraint _ccRedBottom;
     ColorConstraint _ccRed;
     ColorConstraint _ccBlue;
     ColorConstraint _ccGreen;
@@ -118,21 +113,19 @@ _showTex(0)
 
 void LCTrackerApp::shutdown()
 {
+    saveColorSettings();
     outputColors();
 }
 
 void LCTrackerApp::setup()
 {
+    _colorPath = ci::getDocumentsDirectory().string() + "lasercat_colors.csv";
+    
     setWindowSize(640, 480);
     _surfTracking = Surface8u(640, 480, false);
     _texTrack = gl::Texture(_surfTracking);
-
+    _isShowingGUI = false;
     _laserMode = LaserModeGreen;
-    
-#if USE_KINECT
-    console() << "There are " << Kinect::getNumDevices() << " Kinects connected." << std::endl;
-	_kinect = Kinect( Kinect::Device() ); // the default Device implies the first Kinect connected
-#else
     
     // list out the devices
     Capture::DeviceRef useDevice;
@@ -153,39 +146,16 @@ void LCTrackerApp::setup()
         _capture = Capture( 640, 480, useDevice );
     }
 	_capture.start();
-#endif
+    
     
     // HSV hue mapped to 0-255 (not 0-360)
-
-    // TODO: Update w/ Orange / Green / Violet
-//    _ccRedTop = ColorConstraintMake(238, 255, 108, 255, 201, 255);
-//    _ccRedBottom = ColorConstraintMake(0, 24, 110, 255, 285, 255);
-    _ccRed = ColorConstraintMake(0, 24, 108, 255, 201, 255);
-    _ccGreen = ColorConstraintMake(106, 130, 0, 255, 222, 255);
-    _ccBlue = ColorConstraintMake(89, 150, 167, 255, 179, 255);
+    readColorSettings();
 
     // GUI
     gui = new SimpleGUI(this);
     gui->lightColor = ColorA(1, 1, 0, 1);
 	gui->addLabel("Color Ranges");
 
-    // Red
-    /*
-    gui->addParam("Red Top Min Hue", &_ccRedTop.hueMin, 0, 255, _ccRedTop.hueMin);
-    gui->addParam("Red Top Max Hue", &_ccRedTop.hueMax, 0, 255, _ccRedTop.hueMax);
-    gui->addParam("Red Top Min Sat", &_ccRedTop.satMin, 0, 255, _ccRedTop.satMin);
-    gui->addParam("Red Top Max Sat", &_ccRedTop.satMax, 0, 255, _ccRedTop.satMax);
-    gui->addParam("Red Top Min Val", &_ccRedTop.valMin, 0, 255, _ccRedTop.valMin);
-    gui->addParam("Red Top Max Val", &_ccRedTop.valMax, 0, 255, _ccRedTop.valMax);
-    
-    gui->addParam("Red Bottom Min Hue", &_ccRedBottom.hueMin, 0, 255, _ccRedBottom.hueMin);
-    gui->addParam("Red Bottom Max Hue", &_ccRedBottom.hueMax, 0, 255, _ccRedBottom.hueMax);
-    gui->addParam("Red Bottom Min Sat", &_ccRedBottom.satMin, 0, 255, _ccRedBottom.satMin);
-    gui->addParam("Red Bottom Max Sat", &_ccRedBottom.satMax, 0, 255, _ccRedBottom.satMax);
-    gui->addParam("Red Bottom Min Val", &_ccRedBottom.valMin, 0, 255, _ccRedBottom.valMin);
-    gui->addParam("Red Bottom Max Val", &_ccRedBottom.valMax, 0, 255, _ccRedBottom.valMax);
-    */
-    
     gui->addParam("Red Min Hue", &_ccRed.hueMin, 0, 255, _ccRed.hueMin);
     gui->addParam("Red Max Hue", &_ccRed.hueMax, 0, 255, _ccRed.hueMax);
     gui->addParam("Red Min Sat", &_ccRed.satMin, 0, 255, _ccRed.satMin);
@@ -213,16 +183,75 @@ void LCTrackerApp::setup()
     
 }
 
-void LCTrackerApp::outputColors()
+static string SerializedColorConstraints(ColorConstraint c)
 {
-/*
-    console() << "ccRedTop: ";
-    LogColorConstraint(_ccRedTop);
-    
-    console() << "ccRedBottom: ";
-    LogColorConstraint(_ccRedBottom);
-*/
+    // This seems retarded
+    string cc = boost::lexical_cast<string>((int)c.hueMin) + "," + boost::lexical_cast<string>((int)c.hueMax) + "," + boost::lexical_cast<string>((int)c.satMin) + "," + boost::lexical_cast<string>((int)c.satMax) + "," + boost::lexical_cast<string>((int)c.valMin) + "," + boost::lexical_cast<string>((int)c.valMax);
+    return cc;
+}
 
+void LCTrackerApp::saveColorSettings()
+{
+    // Get an ofstream which is what you'll use to write to your file.
+    std::ofstream oStream( _colorPath.c_str() );
+    
+    // write the string.
+    oStream << SerializedColorConstraints(_ccRed) << "\n";   // R
+    oStream << SerializedColorConstraints(_ccGreen) << "\n"; // G
+    oStream << SerializedColorConstraints(_ccBlue) << "\n";  // B
+    
+    oStream.close();
+}
+
+void LCTrackerApp::readColorSettings()
+{
+
+    fs::path testPath( _colorPath );
+    if( fs::exists( testPath ) )
+    {
+        string myString = loadString( loadFile( _colorPath ) );
+        vector<string> rgb = split(myString,"\n");
+
+        for(int i=0;i<rgb.size();i++){
+            vector<string> colorVals = split(rgb[i],",");
+            
+            if(colorVals.size() >= 6){
+                int hueMin= boost::lexical_cast<int>(colorVals[0]);
+                int hueMax= boost::lexical_cast<int>(colorVals[1]);
+                int satMin= boost::lexical_cast<int>(colorVals[2]);
+                int satMax= boost::lexical_cast<int>(colorVals[3]);
+                int valMin= boost::lexical_cast<int>(colorVals[4]);
+                int valMax= boost::lexical_cast<int>(colorVals[5]);
+                ColorConstraint c = ColorConstraintMake(hueMin, hueMax, satMin, satMax, valMin, valMax);
+                switch(i){
+                    case 0: // R
+                        _ccRed = c;
+                        LogColorConstraint(_ccRed);
+                        break;
+                    case 1: // G
+                        _ccGreen = c;
+                        LogColorConstraint(_ccGreen);
+                        break;
+                    case 2: // B
+                        _ccBlue = c;
+                        LogColorConstraint(_ccBlue);
+                        break;
+                }
+            }
+        }
+        
+    }else{
+        // TODO: Use defaults
+        console() << "No file exists at " << _colorPath << ". Using default colors. \n";
+        _ccRed = ColorConstraintMake(0, 24, 108, 255, 201, 255);
+        _ccGreen = ColorConstraintMake(106, 130, 0, 255, 222, 255);
+        _ccBlue = ColorConstraintMake(89, 150, 167, 255, 179, 255);
+    }
+
+}
+
+void LCTrackerApp::outputColors()
+{    
     console() << "ccRed: ";
     LogColorConstraint(_ccRed);
 
@@ -252,6 +281,10 @@ void LCTrackerApp::keyDown( KeyEvent event )
     if(c == KeyEvent::KEY_c){
         
         outputColors();
+    
+    }else if(c == KeyEvent::KEY_ESCAPE){
+        
+        _isShowingGUI = !_isShowingGUI;
         
     }else if(c == KeyEvent::KEY_r || c == KeyEvent::KEY_g || c == KeyEvent::KEY_b || c == KeyEvent::KEY_SPACE){
         
@@ -263,13 +296,8 @@ void LCTrackerApp::keyDown( KeyEvent event )
 void LCTrackerApp::update()
 {
     
-#if USE_KINECT
-    if( _kinect.checkNewVideoFrame() ){
-		_surfTracking = _kinect.getVideoImage();
-#else
     if( _capture.checkNewFrame() ) {
         _surfTracking = _capture.getSurface();
-#endif
 
         // Find the contours
         Vec2i imgSize = _surfTracking.getSize();
@@ -296,23 +324,6 @@ void LCTrackerApp::update()
                 
                 ColorHSV hsv = RGBtoHSV(rgb);
 
-                /*
-                // Check Red (top)
-                if(hsv.hue >= _ccRedTop.hueMin && hsv.hue <= _ccRedTop.hueMax &&
-                   hsv.val >= _ccRedTop.valMin && hsv.val <= _ccRedTop.valMax &&
-                   hsv.sat >= _ccRedTop.satMin && hsv.sat <= _ccRedTop.satMax){
-
-                    chR.setValue(px, 255);
-
-                // Check Red (bottom)
-                }else if(hsv.hue >= _ccRedBottom.hueMin && hsv.hue <= _ccRedBottom.hueMax &&
-                         hsv.val >= _ccRedBottom.valMin && hsv.val <= _ccRedBottom.valMax &&
-                         hsv.sat >= _ccRedBottom.satMin && hsv.sat <= _ccRedBottom.satMax){
-
-
-                    chR.setValue(px, 255);
-                */
-                
                 // Check Blue
                 if(hsv.hue >= _ccBlue.hueMin && hsv.hue <= _ccBlue.hueMax &&
                      hsv.val >= _ccBlue.valMin && hsv.val <= _ccBlue.valMax &&
@@ -345,14 +356,31 @@ void LCTrackerApp::update()
 
         cv::Mat threshR(toOcv(chR)), threshG(toOcv(chG)), threshB(toOcv(chB));
         vector<vector<cv::Point> > contoursR, contoursG, contoursB;
+
+#define USE_CV_BLUR 0
+        // This doesn't seem to have a framerate hit
+#if USE_CV_BLUR
+        cv::Mat blurR, thresholdedR, blurG, thresholdedG, blurB, thresholdedB;
+        int blurAmt = 5;
+        cv::blur(threshR, blurR, cv::Size(blurAmt,blurAmt));
+        cv::blur(threshG, blurG, cv::Size(blurAmt,blurAmt));
+        cv::blur(threshB, blurB, cv::Size(blurAmt,blurAmt));
+        cv::threshold( blurR, thresholdedR, 127, 255, CV_THRESH_BINARY);
+        cv::threshold( blurG, thresholdedG, 127, 255, CV_THRESH_BINARY);
+        cv::threshold( blurB, thresholdedB, 127, 255, CV_THRESH_BINARY);
+        cv::findContours(thresholdedR, contoursR, CV_RETR_EXTERNAL, CV_CHAIN_APPROX_SIMPLE);
+        cv::findContours(thresholdedG, contoursG, CV_RETR_EXTERNAL, CV_CHAIN_APPROX_SIMPLE);
+        cv::findContours(thresholdedB, contoursB, CV_RETR_EXTERNAL, CV_CHAIN_APPROX_SIMPLE);
+#else
         cv::findContours(threshR, contoursR, CV_RETR_EXTERNAL, CV_CHAIN_APPROX_SIMPLE);
         cv::findContours(threshG, contoursG, CV_RETR_EXTERNAL, CV_CHAIN_APPROX_SIMPLE);
         cv::findContours(threshB, contoursB, CV_RETR_EXTERNAL, CV_CHAIN_APPROX_SIMPLE);
-        
+#endif
+
         _blobR = getLargestContour(&contoursR);
         _blobB = getLargestContour(&contoursB);
         _blobG = getLargestContour(&contoursG);
-
+                
         // Choose the texture to show based on keyboard input.
         if(_showTex == KeyEvent::KEY_r){
             _texTrack = gl::Texture(chR);
@@ -408,10 +436,12 @@ void LCTrackerApp::draw()
     gl::color(1.0, 1.0, 1.0);
     gl::draw(_texTrack);
     
-    updateLabels();
-    gui->draw();
-	gl::disableDepthRead();
-	gl::disableDepthWrite();
+    if(_isShowingGUI){
+        updateLabels();
+        gui->draw();
+        gl::disableDepthRead();
+        gl::disableDepthWrite();
+    }
     
     glLineWidth(2.0f);
     
