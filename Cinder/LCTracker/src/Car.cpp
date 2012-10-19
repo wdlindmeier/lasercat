@@ -14,22 +14,22 @@
 Car::Car(const Vec2f &initialPosition, const Vec2f &initialDirection)
 {
     app::console() << "initialPosition: " << initialPosition << " initialDirection: " << initialDirection << "\n";
+    _size = 50.0f; // Fake car only
     setPositionAndDirection(initialPosition, initialDirection);
-    _size = 50.0f;
 }
 
 void Car::setPositionAndDirection(const Vec2f &initialPosition, const Vec2f &initialDirection)
 {
     _center = initialPosition;
     
-    _n = initialDirection.normalized();
+    _v = initialDirection.normalized();
     
     float theta = DegreesToRadians(-90.0f);
-    float vecX = cos(theta) * _n.x - sin(theta) * _n.y;
-    float vecY = sin(theta) * _n.x + cos(theta) * _n.y;
+    float vecX = cos(theta) * _v.x - sin(theta) * _v.y;
+    float vecY = sin(theta) * _v.x + cos(theta) * _v.y;
     
-    _v = Vec2f(vecX, vecY);
-    _v.normalize();
+    _n = Vec2f(vecX, vecY);
+    _n.normalize();
     
     // Set the posA and posB
     _posTrackerA = _center + (_v * (_size * 0.5));
@@ -40,7 +40,7 @@ void Car::setPositionAndDirection(const Vec2f &initialPosition, const Vec2f &ini
 void Car::draw()
 {
     
-    glLineWidth(10);
+    glLineWidth(5);
 
     gl::color(1,1,1);
 
@@ -48,7 +48,8 @@ void Car::draw()
     gl::drawLine(_posTrackerA, _posTrackerB);
 
     // Norm
-    gl::drawLine(_center, Vec2f(_center + (_n * _posTrackerA.distance(_posTrackerB))));
+    Vec2f normalVec = _n * _posTrackerA.distance(_posTrackerB);
+    gl::drawLine(_center - (normalVec*0.5), _center + (normalVec*0.5));
     
     // Tracking points
     gl::color(1, 0, 0);
@@ -81,10 +82,9 @@ void Car::update(const Vec2f &posLaser, const float &relativeSpeed)
     Vec2f vecToLaser = posLaser - _center;
     Vec2f vecLaserUnit = vecToLaser.normalized();
     
-    float normRads = atan2(_n.y, _n.x);
+    float vecRads = atan2(_v.y, _v.x);
     float laserRads = atan2(vecLaserUnit.y, vecLaserUnit.x);
-
-    float deltaRads = laserRads-normRads;
+    float deltaRads = laserRads-vecRads;
     int degrees = RadiansToDegrees(deltaRads);
 
     if(degrees < 0) degrees = 360 + degrees;
@@ -105,13 +105,13 @@ void Car::update(const Vec2f &posLaser, const float &relativeSpeed)
     _posTrackerB = newB;
     
     // Then move forward a little
+
+    Vec2f newVec = _posTrackerA - _posTrackerB; //normalBetweenTrackingPoints();
+    newVec.normalize();
     
-    float distanceToFrontOfCar = _posTrackerA.distance(_posTrackerB); // Make this real
-    Vec2f newNormal = normalBetweenTrackingPoints();
-        
-    float goForwardDist = (_center.distance(posLaser) - distanceToFrontOfCar) * relativeSpeed;
-    Vec2f newCenter = _center + (newNormal * goForwardDist);
-    setPositionAndDirection(newCenter, newNormal);
-    
+    float goForwardDist = (_center.distance(posLaser) - (_size*0.5)) * relativeSpeed;
+    Vec2f newCenter = _center + (newVec * goForwardDist);
+    setPositionAndDirection(newCenter, newVec);
+
 }
 

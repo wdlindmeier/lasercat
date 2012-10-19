@@ -82,6 +82,9 @@ public:
 	void setup();
     void shutdown();
 	void keyDown( KeyEvent event );
+    void mouseDown( MouseEvent event);
+    void mouseUp( MouseEvent event);
+    void mouseDrag( MouseEvent event);
 	void update();
 	void draw();
     void updateLabels();
@@ -109,6 +112,8 @@ private:
     bool        _isShowingGUI;
     LaserMode   _laserMode;
     string      _colorPath;
+    bool        _isMouseDown;
+    Vec2f       _posMouse;
     
     ColorConstraint _ccRed;
     ColorConstraint _ccBlue;
@@ -125,7 +130,8 @@ _blobR(0,0,0),
 _blobG(0,0,0),
 _blobB(0,0,0),
 _labelFPS(0),
-_showTex(0)
+_showTex(0),
+_isMouseDown(0)
 {
 
 };
@@ -329,6 +335,23 @@ void LCTrackerApp::keyDown( KeyEvent event )
     }
 }
 
+void LCTrackerApp::mouseDown( MouseEvent event)
+{
+    _isMouseDown = true;
+    _posMouse = event.getPos();
+}
+
+void LCTrackerApp::mouseUp( MouseEvent event)
+{
+    _isMouseDown = false;
+    _posMouse = event.getPos();
+}
+
+void LCTrackerApp::mouseDrag( MouseEvent event)
+{
+    _posMouse = event.getPos();
+}
+
 void LCTrackerApp::update()
 {
     
@@ -431,16 +454,22 @@ void LCTrackerApp::update()
     }
     
     Vec2f posLaser;
-    switch(_laserMode){
-        case LaserModeRed:
-            posLaser = _blobR.xy();
-            break;
-        case LaserModeGreen:
-            posLaser = _blobG.xy();
-            break;
-        case LaserModeBlue:
-            posLaser = _blobB.xy();
-            break;
+    if(_isMouseDown){
+        
+        posLaser = _posMouse;
+        
+    }else{
+        switch(_laserMode){
+            case LaserModeRed:
+                posLaser = _blobR.xy();
+                break;
+            case LaserModeGreen:
+                posLaser = _blobG.xy();
+                break;
+            case LaserModeBlue:
+                posLaser = _blobB.xy();
+                break;
+        }
     }
     
     if(posLaser != Vec2f::zero()){

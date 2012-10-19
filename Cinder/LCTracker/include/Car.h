@@ -27,7 +27,6 @@ public:
     const Vec2f getTrackerA(){ return _posTrackerA; };
     const Vec2f getTrackerB(){ return _posTrackerB; };
     const Vec2f getCenter(){ return _center; };
-    const Vec2f getDirection(){ return _n; };
     void setSize(float newSize){ _size = newSize; };
     const float getSize(){ return _size; };
     
