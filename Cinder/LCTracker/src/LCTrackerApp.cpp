@@ -19,13 +19,17 @@
 #include "SimpleGUI.h"
 
 // LC
-#include "LCDrawingHelper.hpp"
+#include "Car.h"
+
+#define USE_SIM_CAR 1
 
 using namespace ci;
 using namespace ci::app;
 using namespace std;
 using namespace gl;
 using namespace mowa::sgui;
+
+#pragma mark - Data types
 
 typedef enum LaserModes {
     LaserModeGreen,
@@ -42,9 +46,18 @@ typedef struct {
     int satMax;
 } ColorConstraint;
 
+#pragma mark - Global Functions
+
 static inline void LogColorConstraint(ColorConstraint c)
 {
     console() << "minHue: " << c.hueMin << " maxHue: " << c.hueMax << " minSat: " << c.satMin << " maxSat: " << c.satMax << " minVal: " << c.valMin << " maxVal: " << c.valMax << "\n";
+}
+
+static string SerializedColorConstraints(ColorConstraint c)
+{
+    // This seems retarded
+    string cc = boost::lexical_cast<string>((int)c.hueMin) + "," + boost::lexical_cast<string>((int)c.hueMax) + "," + boost::lexical_cast<string>((int)c.satMin) + "," + boost::lexical_cast<string>((int)c.satMax) + "," + boost::lexical_cast<string>((int)c.valMin) + "," + boost::lexical_cast<string>((int)c.valMax);
+    return cc;
 }
 
 static inline ColorConstraint ColorConstraintMake(int minHue, int maxHue, int minSat, int maxSat, int minVal, int maxVal)
@@ -59,6 +72,7 @@ static inline ColorConstraint ColorConstraintMake(int minHue, int maxHue, int mi
     return c;
 }
 
+#pragma mark - LCTrackerApp
 
 class LCTrackerApp : public AppBasic {
     
@@ -75,6 +89,9 @@ public:
     void outputColors();
     void saveColorSettings();
     void readColorSettings();
+#if USE_SIM_CAR
+    void resetCar();
+#endif
 
 private:
     
@@ -98,6 +115,8 @@ private:
     ColorConstraint _ccGreen;
 
     LabelControl *_labelFPS;
+    
+    Car _car;
     
 };
 
@@ -126,27 +145,6 @@ void LCTrackerApp::setup()
     _texTrack = gl::Texture(_surfTracking);
     _isShowingGUI = false;
     _laserMode = LaserModeGreen;
-    
-    // list out the devices
-    Capture::DeviceRef useDevice;
-    bool useDefaultDevice = true;
-	std::vector<Capture::DeviceRef> devices( Capture::getDevices() );
-	for( std::vector<Capture::DeviceRef>::const_iterator deviceIt = devices.begin(); deviceIt != devices.end(); ++deviceIt ) {
-        Capture::DeviceRef device = *deviceIt;
-        console() << "Found Device " << device->getName() << " ID: " << device->getUniqueId() << std::endl;
-        
-        if( device->checkAvailable() ) {
-            useDevice = device;
-            useDefaultDevice = false;
-        }
-	}
-    if(useDefaultDevice){
-        _capture = Capture( 640, 480 );
-    }else{
-        _capture = Capture( 640, 480, useDevice );
-    }
-	_capture.start();
-    
     
     // HSV hue mapped to 0-255 (not 0-360)
     readColorSettings();
@@ -181,14 +179,48 @@ void LCTrackerApp::setup()
     
     updateLabels();
     
+#if USE_SIM_CAR
+    
+    resetCar();
+#else 
+    
+    _car = Car(Vec2f::zero(), Vec2f::zero());
+    
+#endif
+    
+    // list out the devices
+    Capture::DeviceRef useDevice;
+    bool useDefaultDevice = true;
+	std::vector<Capture::DeviceRef> devices( Capture::getDevices() );
+	for( std::vector<Capture::DeviceRef>::const_iterator deviceIt = devices.begin(); deviceIt != devices.end(); ++deviceIt ) {
+        Capture::DeviceRef device = *deviceIt;
+        console() << "Found Device " << device->getName() << " ID: " << device->getUniqueId() << std::endl;
+        
+        if( device->checkAvailable() ) {
+            useDevice = device;
+            useDefaultDevice = false;
+        }
+	}
+    if(useDefaultDevice){
+        _capture = Capture( 640, 480 );
+    }else{
+        _capture = Capture( 640, 480, useDevice );
+    }
+	_capture.start();
+    
 }
 
-static string SerializedColorConstraints(ColorConstraint c)
+#if USE_SIM_CAR
+
+void LCTrackerApp::resetCar()
 {
-    // This seems retarded
-    string cc = boost::lexical_cast<string>((int)c.hueMin) + "," + boost::lexical_cast<string>((int)c.hueMax) + "," + boost::lexical_cast<string>((int)c.satMin) + "," + boost::lexical_cast<string>((int)c.satMax) + "," + boost::lexical_cast<string>((int)c.valMin) + "," + boost::lexical_cast<string>((int)c.valMax);
-    return cc;
+    
+    console() << "creating new car\n";
+    _car = Car(getWindowSize() * 0.5, Vec2f(0.0,1.0));
+    
 }
+
+#endif 
 
 void LCTrackerApp::saveColorSettings()
 {
@@ -285,6 +317,10 @@ void LCTrackerApp::keyDown( KeyEvent event )
     }else if(c == KeyEvent::KEY_ESCAPE){
         
         _isShowingGUI = !_isShowingGUI;
+        
+    }else if(c == KeyEvent::KEY_RETURN){
+    
+        resetCar();
         
     }else if(c == KeyEvent::KEY_r || c == KeyEvent::KEY_g || c == KeyEvent::KEY_b || c == KeyEvent::KEY_SPACE){
         
@@ -393,6 +429,26 @@ void LCTrackerApp::update()
         }
 
     }
+    
+    Vec2f posLaser;
+    switch(_laserMode){
+        case LaserModeRed:
+            posLaser = _blobR.xy();
+            break;
+        case LaserModeGreen:
+            posLaser = _blobG.xy();
+            break;
+        case LaserModeBlue:
+            posLaser = _blobB.xy();
+            break;
+    }
+    
+    if(posLaser != Vec2f::zero()){
+
+        float speed = 1 * (1.0/getAverageFps());
+        _car.update(posLaser, speed);
+        
+    }
 
 }
 
@@ -445,10 +501,18 @@ void LCTrackerApp::draw()
     
     glLineWidth(2.0f);
     
-    bool drawVec = true;
     Vec2f posRed, posGreen, posBlue;
     
-    // Draw circles around the blobs
+    // Draw laser blob
+    if(_blobG != Vec3f::zero()){
+        gl::color(0.0, 1.0, 0.0);
+        posGreen = Vec2f(_blobG.x, _blobG.y);
+        gl::drawStrokedCircle(Vec2f(posGreen.x, posGreen.y), _blobG.z);
+    }
+    
+#if !USE_SIM_CAR
+    
+    // Draw circles around the car blobs
     
     if(_blobR != Vec3f::zero()){
         gl::color(1.0, 0.0, 0.0);
@@ -456,44 +520,39 @@ void LCTrackerApp::draw()
         gl::drawStrokedCircle(posRed, _blobR.z);
     }else{ drawVec = false; }
     
-    if(_blobG != Vec3f::zero()){
-        gl::color(0.0, 1.0, 0.0);
-        posGreen = Vec2f(_blobG.x, _blobG.y);
-        gl::drawStrokedCircle(Vec2f(posGreen.x, posGreen.y), _blobG.z);
-    }
-
     if(_blobB != Vec3f::zero()){
         gl::color(0.0, 0.0, 1.0);
         posBlue = Vec2f(_blobB.x, _blobB.y);
         gl::drawStrokedCircle(Vec2f(posBlue.x, posBlue.y), _blobB.z);
-    }else{ drawVec = false; }
-    
+    }else{ drawVec = false; }    
     
     // Drawing the car direction (a cross)
     gl::color(1.0f, 1.0f, 1.0f);
     
-    // Draw the vector
-    if(drawVec){
-        gl::drawLine(posRed, posBlue);
-        
-        Vec2f vecCar(posRed.x - posBlue.x, posRed.y - posBlue.y);
-        float vecCarLength = vecCar.length();
-        vecCar.normalize();
-        
-        float theta = DegreesToRadians(90.0f);
-        float normX = cos(theta) * vecCar.x - sin(theta) * vecCar.y;
-        float normY = sin(theta) * vecCar.x + cos(theta) * vecCar.y;
-        Vec2f normCar(normX, normY);
+    gl::drawLine(posRed, posBlue);
+    
+    Vec2f vecCar(posRed.x - posBlue.x, posRed.y - posBlue.y);
+    float vecCarLength = vecCar.length();
+    vecCar.normalize();
+    
+    float theta = DegreesToRadians(90.0f);
+    float normX = cos(theta) * vecCar.x - sin(theta) * vecCar.y;
+    float normY = sin(theta) * vecCar.x + cos(theta) * vecCar.y;
+    Vec2f normCar(normX, normY);
 
-        normCar *= vecCarLength;
-        Vec2f halfVecCar = vecCar * (vecCarLength * 0.5);
-        
-        Vec2f normStart(posBlue.x + halfVecCar.x, posBlue.y + halfVecCar.y);
-        normStart -= (normCar * 0.5);
-        
-        // Draw the normal
-        gl::drawLine(normStart, normStart+normCar);
-    }
+    normCar *= vecCarLength;
+    Vec2f halfVecCar = vecCar * (vecCarLength * 0.5);
+    
+    Vec2f normStart(posBlue.x + halfVecCar.x, posBlue.y + halfVecCar.y);
+    normStart -= (normCar * 0.5);
+    
+    // Draw the normal
+    gl::drawLine(normStart, normStart+normCar);
+    
+#endif
+    
+    _car.draw();
+    
 }
 
 

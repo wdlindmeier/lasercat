@@ -9,6 +9,10 @@
 #ifndef LCTracker_LCDrawingHelper_hpp
 #define LCTracker_LCDrawingHelper_hpp
 
+#include "cinder/Vector.h"
+
+using namespace ci;
+
 #define DegreesToRadians(x) (M_PI * x / 180.0)
 
 #define MIN3(x,y,z)  ((y) <= (z) ? \
@@ -21,6 +25,17 @@
 : \
 ((x) >= (z) ? (x) : (z)))
 
+#define DegreesToRadians(x) (M_PI * x / 180.0)
+#define RadiansToDegrees(x) (x * (180.0/M_PI))
+
+static inline const Vec2f RotatePointAroundCenter(const Vec2f &point, const Vec2f &center, float degrees)
+{
+    // We'll just pivot for the time being
+    float theta = DegreesToRadians(degrees);
+    float newX = cos(theta) * (point.x-center.x) - sin(theta) * (point.y-center.y) + center.x;
+    float newY = sin(theta) * (point.x-center.x) + cos(theta) * (point.y-center.y) + center.y;
+    return Vec2f(newX, newY);
+}
 
 struct ColorRGB {
     unsigned char r, g, b;    /* Channel intensities between 0 and 255 */
@@ -32,7 +47,7 @@ struct ColorHSV {
     unsigned char val;        /* Value between 0 (black) and 255 */
 };
 
-struct ColorHSV RGBtoHSV(struct ColorRGB rgb) {
+static struct ColorHSV RGBtoHSV(struct ColorRGB rgb) {
     
     struct ColorHSV hsv;
     

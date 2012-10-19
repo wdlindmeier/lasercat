@@ -29,6 +29,7 @@
 		A9885734162B1C5200D39CB7 /* SimpleGUI.cpp in Sources */ = {isa = PBXBuildFile; fileRef = A9885733162B1C5200D39CB7 /* SimpleGUI.cpp */; };
 		A9885736162B1E0600D39CB7 /* pf_tempesta_seven.ttf in Resources */ = {isa = PBXBuildFile; fileRef = A9885735162B1E0600D39CB7 /* pf_tempesta_seven.ttf */; };
 		A98A6DCB162BC7B50042393C /* IOKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = A98A6DCA162BC7B50042393C /* IOKit.framework */; };
+		A98D291C1630EB170030F0DA /* Car.cpp in Sources */ = {isa = PBXBuildFile; fileRef = A98D291B1630EB170030F0DA /* Car.cpp */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -120,6 +121,8 @@
 		A9885733162B1C5200D39CB7 /* SimpleGUI.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = SimpleGUI.cpp; path = ../src/SimpleGUI.cpp; sourceTree = "<group>"; };
 		A9885735162B1E0600D39CB7 /* pf_tempesta_seven.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; name = pf_tempesta_seven.ttf; path = ../resources/pf_tempesta_seven.ttf; sourceTree = "<group>"; };
 		A98A6DCA162BC7B50042393C /* IOKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = IOKit.framework; path = System/Library/Frameworks/IOKit.framework; sourceTree = SDKROOT; };
+		A98D291A1630EB0F0030F0DA /* Car.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = Car.h; path = ../include/Car.h; sourceTree = "<group>"; };
+		A98D291B1630EB170030F0DA /* Car.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = Car.cpp; path = ../src/Car.cpp; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -147,9 +150,10 @@
 		080E96DDFE201D6D7F000001 /* Source */ = {
 			isa = PBXGroup;
 			children = (
-				A9885733162B1C5200D39CB7 /* SimpleGUI.cpp */,
+				A98D291B1630EB170030F0DA /* Car.cpp */,
 				A98856A0162A03C400D39CB7 /* LCDrawingHelper.hpp */,
 				00BAE6590E7ED9C10018A608 /* LCTrackerApp.cpp */,
+				A9885733162B1C5200D39CB7 /* SimpleGUI.cpp */,
 			);
 			name = Source;
 			sourceTree = "<group>";
@@ -206,8 +210,9 @@
 		29B97315FDCFA39411CA2CEA /* Headers */ = {
 			isa = PBXGroup;
 			children = (
-				A9885732162B1C4800D39CB7 /* SimpleGUI.h */,
+				A98D291A1630EB0F0030F0DA /* Car.h */,
 				32CA4F630368D1EE00C91783 /* LCTracker_Prefix.pch */,
+				A9885732162B1C4800D39CB7 /* SimpleGUI.h */,
 			);
 			name = Headers;
 			sourceTree = "<group>";
@@ -441,6 +446,9 @@
 /* Begin PBXProject section */
 		29B97313FDCFA39411CA2CEA /* Project object */ = {
 			isa = PBXProject;
+			attributes = {
+				LastUpgradeCheck = 0450;
+			};
 			buildConfigurationList = C01FCF4E08A954540054247B /* Build configuration list for PBXProject "LCTracker" */;
 			compatibilityVersion = "Xcode 3.2";
 			developmentRegion = English;
@@ -483,6 +491,7 @@
 			files = (
 				00BAE65A0E7ED9C10018A608 /* LCTrackerApp.cpp in Sources */,
 				A9885734162B1C5200D39CB7 /* SimpleGUI.cpp in Sources */,
+				A98D291C1630EB170030F0DA /* Car.cpp in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -492,6 +501,7 @@
 		C01FCF4B08A954540054247B /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				COMBINE_HIDPI_IMAGES = YES;
 				COPY_PHASE_STRIP = NO;
 				GCC_DYNAMIC_NO_PIC = NO;
 				GCC_INLINES_ARE_PRIVATE_EXTERN = NO;
@@ -528,6 +538,7 @@
 		C01FCF4C08A954540054247B /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				COMBINE_HIDPI_IMAGES = YES;
 				DEAD_CODE_STRIPPING = YES;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				GCC_FAST_MATH = YES;
@@ -578,7 +589,7 @@
 				HEADER_SEARCH_PATHS = "\"$(CINDER_PATH)/boost\"";
 				MACOSX_DEPLOYMENT_TARGET = 10.5;
 				ONLY_ACTIVE_ARCH = YES;
-				SDKROOT = macosx10.7;
+				SDKROOT = macosx;
 				USER_HEADER_SEARCH_PATHS = "\"$(CINDER_PATH)/blocks/opencv/include\" \"$(CINDER_PATH)/include\" ../include \"$(CINDER_PATH)/blocks/kinect/include";
 			};
 			name = Debug;
@@ -596,7 +607,7 @@
 				HEADER_SEARCH_PATHS = "\"$(CINDER_PATH)/boost\"";
 				MACOSX_DEPLOYMENT_TARGET = 10.5;
 				ONLY_ACTIVE_ARCH = YES;
-				SDKROOT = macosx10.7;
+				SDKROOT = macosx;
 				USER_HEADER_SEARCH_PATHS = "\"$(CINDER_PATH)/blocks/opencv/include\" \"$(CINDER_PATH)/include\" ../include \"$(CINDER_PATH)/blocks/kinect/include";
 			};
 			name = Release;
