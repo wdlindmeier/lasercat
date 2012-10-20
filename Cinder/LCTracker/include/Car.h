@@ -23,7 +23,7 @@ public:
     Car(const Vec2f &initialPosition, const Vec2f &initialDirection);
     void setPositionAndDirection(const Vec2f &initialPosition, const Vec2f &initialDirection);
     void draw();
-    void update(const Vec2f &posLaser, const float &relativeSpeed);
+    void update(const Vec2f &posLaser, const float &relativeSpeed, const Vec2f &windowSize);
     const Vec2f getTrackerA(){ return _posTrackerA; };
     const Vec2f getTrackerB(){ return _posTrackerB; };
     const Vec2f getCenter(){ return _center; };

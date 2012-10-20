@@ -42,7 +42,7 @@ void Car::draw()
     
     glLineWidth(5);
 
-    gl::color(1,1,1);
+    gl::color(0.2,0.2,0.2);
 
     // Vec
     gl::drawLine(_posTrackerA, _posTrackerB);
@@ -57,7 +57,6 @@ void Car::draw()
     
     gl::color(0, 0, 1);
     gl::drawSolidCircle(_posTrackerB, 10.0f);
-    
     
 }
 
@@ -75,7 +74,9 @@ Vec2f Car::normalBetweenTrackingPoints()
     return Vec2f(normX, normY);
 }
 
-void Car::update(const Vec2f &posLaser, const float &relativeSpeed)
+void Car::update(const Vec2f &posLaser,
+                 const float &relativeSpeed,
+                 const Vec2f &windowSize)
 {
     
     // Whats the vector between the _center and the green laser?
@@ -101,17 +102,24 @@ void Car::update(const Vec2f &posLaser, const float &relativeSpeed)
     
     Vec2f newA = RotatePointAroundCenter(_posTrackerA, _center, degrees);
     Vec2f newB = RotatePointAroundCenter(_posTrackerB, _center, degrees);
-    _posTrackerA = newA;
-    _posTrackerB = newB;
     
     // Then move forward a little
 
-    Vec2f newVec = _posTrackerA - _posTrackerB; //normalBetweenTrackingPoints();
+    Vec2f newVec = newA - newB; //normalBetweenTrackingPoints();
     newVec.normalize();
     
     float goForwardDist = (_center.distance(posLaser) - (_size*0.5)) * relativeSpeed;
     Vec2f newCenter = _center + (newVec * goForwardDist);
-    setPositionAndDirection(newCenter, newVec);
+    if(Area(_size,_size,windowSize.x-(_size*2),windowSize.y-(_size*2)).contains(newCenter)){
+
+        /*
+        _posTrackerA = newA;
+        _posTrackerB = newB;
+        */
+        
+        // Don't let the car leave the bounds, otherwise we cant track it
+        setPositionAndDirection(newCenter, newVec);
+    }
 
 }
 
