@@ -67,8 +67,8 @@ int Bgo = 2; //backward
 void setup()
 {  
   Serial.begin(9600);
-  pinMode(MotorRight1, OUTPUT);  // pin 5 (PWM)
-  pinMode(MotorRight2, OUTPUT);  // pin 6 (PWM)
+  pinMode(MotorRight1, OUTPUT);  // pin 8 (PWM)
+  pinMode(MotorRight2, OUTPUT);  // pin 9 (PWM)
   pinMode(MotorLeft1,  OUTPUT);  // pin 10 (PWM) 
   pinMode(MotorLeft2,  OUTPUT);  // pin 11 (PWM)
   
@@ -90,12 +90,10 @@ void setup()
   
   Serial.println("car setup done!"); 
 }
- 
-//******************************************************************(Void)
-void advance(int a) //move forward
-{
-    // HARRY: 
-    // Noted that we can only control one side motors right now due to control card (L298) design
+
+/* 
+ HARRY: 
+     Noted that we can only control one side motors right now due to control card (L298) design
     // Or we make a wrong HW layout?
     
     // pin          wheel    movement
@@ -104,10 +102,15 @@ void advance(int a) //move forward
     // MotorLeft2   left
     // MotorRight1  right
     // MotorRight2  right
-    
-    
+*/
+
+
+void advance(int a) //move forward
+{
     digitalWrite(MotorRight1,HIGH);//
     digitalWrite(MotorLeft2,HIGH);// reverse
+    analogWrite(SpeedPin1,255);
+    analogWrite(SpeedPin2,255);
     //digitalWrite(MotorRight1,LOWs);
     //digitalWrite(MotorRight2,HIGH);
     //digitalWrite(MotorLeft1,LOW);
@@ -163,6 +166,40 @@ void turnL(int e) //turn left (unused)
 } 
 
 
+void TurnRB(int n) {
+    back(n-9);
+    left(n-9);
+    
+    back(n-8);
+    left(n-8);
+}
+
+
+
+void TurnLB(int n) {
+    back(n-9);
+    right(n-9);
+    
+    back(n-8);
+    right(n-8);
+}
+
+
+void TurnLF(int n) {
+    advance(n-9);
+    left(n-9);
+    
+    advance(n-8);
+    left(n-8);
+}
+
+
+
+void PivotTest() {
+    TurnRB(10);
+    stop(1);
+    TurnLF(10);
+}
 
 
 void SpeedTest(int d) {
@@ -187,8 +224,7 @@ void backSlower(int g) {
 
 
 // backforwad
-void back(int g){
-    
+void back(int g){   
     digitalWrite(MotorRight2,HIGH);//
     digitalWrite(MotorLeft1,HIGH);// reverse
     analogWrite(SpeedPin1,255);
@@ -317,8 +353,10 @@ void loop()
         if (results.value ==  IRback) {
           Serial.println("IRrecv: backward");
           //SpeedTest(30);
-          back(10);
-          backSlower(10);
+          //*********** test here!!
+          //back(10);
+          PivotTest();
+          //TurnFL(10);
         }
         
         if (results.value == IRturnright)
@@ -446,8 +484,8 @@ void loop()
                      }
                  }
                     results.value=0;
-                    advance(1); // 正常前進 
-                    Serial.print(" Advance "); //顯示方向(前進)
+                    advance(1); // normal forward 
+                    Serial.print(" Advance ");
                     Serial.print(" "); 
               }
               
@@ -510,8 +548,8 @@ void loop()
                 
                 results.value=0;
                 back(1); 
-                turnL(6); // 左轉
-                Serial.print(" Left "); //顯示方向(右轉) 
+                turnL(6); //turn left
+                Serial.print(" Left ");  
              } 
               
            if (irrecv.decode(&results)) {
