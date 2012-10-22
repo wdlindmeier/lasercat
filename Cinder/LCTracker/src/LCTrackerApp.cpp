@@ -11,6 +11,11 @@
 #include "cinder/Area.h"
 #include "cinder/Capture.h"
 
+#define IS_USING_SERIAL 1
+#if IS_USING_SERIAL
+#include "cinder/Serial.h"
+#endif
+
 // Boost
 #include <boost/lexical_cast.hpp>
 
@@ -20,8 +25,6 @@
 
 // LC
 #include "Car.h"
-
-#define USE_SIM_CAR 1
 
 using namespace ci;
 using namespace ci::app;
@@ -80,6 +83,9 @@ public:
     
     LCTrackerApp();
 	void setup();
+    void setupGUI();
+    void setupCapture();
+    void setupSerial();
     void shutdown();
 	void keyDown( KeyEvent event );
     void mouseDown( MouseEvent event);
@@ -87,6 +93,7 @@ public:
     void mouseDrag( MouseEvent event);
     void moveClosetTrackingPoint( MouseEvent event);
 	void update();
+    void updateCarOrientation();
 	void draw();
     void drawWithProjection();
     void updateLabels();
@@ -94,10 +101,8 @@ public:
     void outputColors();
     void saveSettings();
     void readSettings();
-#if USE_SIM_CAR
     void resetCar();
-#endif
-
+    
 private:
     
     gl::Texture _texTrack;
@@ -106,37 +111,38 @@ private:
     gl::Texture _texB;
     Surface8u   _surfTracking;
     
-    Vec3f       _blobR;
-    Vec3f       _blobG;
-    Vec3f       _blobB;
-
-    Capture     _capture;
-
-    char        _showTex;
-    SimpleGUI   *gui;
-    bool        _isShowingGUI;
-    LaserMode   _laserMode;
-    string      _settingsPath;
-    bool        _isDrawingProjection;
-    bool        _isSkewed;
-    Vec2f       _posMouse;
-    
     ColorConstraint _ccRed;
     ColorConstraint _ccBlue;
     ColorConstraint _ccGreen;
 
+    Vec3f       _blobCarFront;
+    Vec3f       _blobCarBack;
+    Vec3f       _blobLaser;
+    Vec2f       _posMouse;
+    Vec2f       _trackingRegion[4];
+
+    Capture     _capture;
+
+    char        _showTex;
+    bool        _isShowingGUI;
+    bool        _isDrawingProjection;
+    bool        _isSkewed;
+    LaserMode   _laserMode;
+
+    SimpleGUI   *gui;
+    string      _settingsPath;
+#if IS_USING_SERIAL
+    Serial      _serial;
+#endif
     LabelControl *_labelFPS;
-    
-    Car _car;
-    
-    Vec2f    _trackingRegion[4];
+    Car         _car;
     
 };
 
 LCTrackerApp::LCTrackerApp() :
-_blobR(0,0,0),
-_blobG(0,0,0),
-_blobB(0,0,0),
+_blobCarFront(0,0,0),
+_blobLaser(0,0,0),
+_blobCarBack(0,0,0),
 _labelFPS(0),
 _showTex(0),
 _isDrawingProjection(0),
@@ -168,44 +174,74 @@ void LCTrackerApp::setup()
     _isShowingGUI = false;
     _laserMode = LaserModeGreen;
     
+    setupGUI();
+    
+#if IS_USING_SERIAL
+    setupSerial();
+#endif
+    setupCapture();
+    resetCar();
+
+}
+
+void LCTrackerApp::setupGUI()
+{
     // GUI
     gui = new SimpleGUI(this);
     gui->lightColor = ColorA(1, 1, 0, 1);
 	gui->addLabel("Color Ranges");
-
+    
     gui->addParam("Red Min Hue", &_ccRed.hueMin, 0, 255, _ccRed.hueMin);
     gui->addParam("Red Max Hue", &_ccRed.hueMax, 0, 255, _ccRed.hueMax);
     gui->addParam("Red Min Sat", &_ccRed.satMin, 0, 255, _ccRed.satMin);
     gui->addParam("Red Max Sat", &_ccRed.satMax, 0, 255, _ccRed.satMax);
     gui->addParam("Red Min Val", &_ccRed.valMin, 0, 255, _ccRed.valMin);
     gui->addParam("Red Max Val", &_ccRed.valMax, 0, 255, _ccRed.valMax);
-
+    
     gui->addParam("Green Min Hue", &_ccGreen.hueMin, 0, 255, _ccGreen.hueMin);
     gui->addParam("Green Max Hue", &_ccGreen.hueMax, 0, 255, _ccGreen.hueMax);
     gui->addParam("Green Min Sat", &_ccGreen.satMin, 0, 255, _ccGreen.satMin);
     gui->addParam("Green Max Sat", &_ccGreen.satMax, 0, 255, _ccGreen.satMax);
     gui->addParam("Green Min Val", &_ccGreen.valMin, 0, 255, _ccGreen.valMin);
     gui->addParam("Green Max Val", &_ccGreen.valMax, 0, 255, _ccGreen.valMax);
-
+    
     gui->addParam("Blue Min Hue", &_ccBlue.hueMin, 0, 255, _ccBlue.hueMin);
     gui->addParam("Blue Max Hue", &_ccBlue.hueMax, 0, 255, _ccBlue.hueMax);
     gui->addParam("Blue Min Sat", &_ccBlue.satMin, 0, 255, _ccBlue.satMin);
     gui->addParam("Blue Max Sat", &_ccBlue.satMax, 0, 255, _ccBlue.satMax);
     gui->addParam("Blue Min Val", &_ccBlue.valMin, 0, 255, _ccBlue.valMin);
     gui->addParam("Blue Max Val", &_ccBlue.valMax, 0, 255, _ccBlue.valMax);
-
+    
     _labelFPS = gui->addLabel("FPS");
     
     updateLabels();
+
+}
+
+#if IS_USING_SERIAL
+void LCTrackerApp::setupSerial()
+{
     
-#if USE_SIM_CAR
-    
-    resetCar();
-#else 
-    
-    _car = Car(Vec2f::zero(), Vec2f::zero());
-    
-#endif
+	const vector<Serial::Device> &devices( Serial::getDevices() );
+	for( vector<Serial::Device>::const_iterator deviceIt = devices.begin(); deviceIt != devices.end(); ++deviceIt ) {
+		console() << "Device: " << deviceIt->getName() << endl;
+	}
+	
+	try {
+		Serial::Device dev = Serial::findDeviceByNameContains("tty.usbmodemfa141");
+		_serial = Serial( dev, 9600);
+        _serial.flush();
+	}
+	catch( ... ) {
+		console() << "There was an error initializing the serial device!" << std::endl;
+		exit( -1 );
+	}
+
+}
+#endif 
+
+void LCTrackerApp::setupCapture()
+{
     
     // list out the devices
     Capture::DeviceRef useDevice;
@@ -226,19 +262,25 @@ void LCTrackerApp::setup()
         _capture = Capture( 640, 480, useDevice );
     }
 	_capture.start();
-    
 }
-
-#if USE_SIM_CAR
 
 void LCTrackerApp::resetCar()
 {
-    
     console() << "creating new car\n";
-    _car = Car(Vec2f(320,240), Vec2f(0.0,1.0));
+    
+#if IS_USING_SERIAL
+    
+    _car = Car(Vec2f::zero(), Vec2f::zero(), &_serial);
+    
+    updateCarOrientation();
+    
+#else
+    
+    _car = Car(Vec2f(320,240), Vec2f(0.0,1.0), NULL);
+    
+#endif
+    
 }
-
-#endif 
 
 void LCTrackerApp::saveSettings()
 {
@@ -447,6 +489,19 @@ void LCTrackerApp::moveClosetTrackingPoint( MouseEvent event)
     
 }
 
+
+void LCTrackerApp::updateCarOrientation()
+{
+    // Get position and direction
+    Vec2f carBack = _blobCarBack.xy();
+    Vec2f carFront = _blobCarFront.xy();
+    Vec2f carDirection = (carFront - carBack);
+    Vec2f carPosition = carBack + (carDirection*0.5); // The position is the point between the trackers
+    float size = carDirection.length();
+    carDirection.normalize();
+    _car.setPositionDirectionSize(carPosition, carDirection, size);
+}
+
 void LCTrackerApp::update()
 {
     
@@ -557,9 +612,9 @@ void LCTrackerApp::update()
         cv::findContours(threshB, contoursB, CV_RETR_EXTERNAL, CV_CHAIN_APPROX_SIMPLE);
 #endif
 
-        _blobR = getLargestContour(&contoursR);
-        _blobB = getLargestContour(&contoursB);
-        _blobG = getLargestContour(&contoursG);
+        _blobCarFront = getLargestContour(&contoursR);
+        _blobCarBack = getLargestContour(&contoursB);
+        _blobLaser = getLargestContour(&contoursG); // Assuming we're using the green laser
                 
         // Choose the texture to show based on keyboard input.
         if(_showTex == KeyEvent::KEY_r){
@@ -577,23 +632,18 @@ void LCTrackerApp::update()
         _texB = gl::Texture(chB);
 
     }
-    
-    Vec2f posLaser;
-    switch(_laserMode){
-        case LaserModeRed:
-            posLaser = _blobR.xy();
-            break;
-        case LaserModeGreen:
-            posLaser = _blobG.xy();
-            break;
-        case LaserModeBlue:
-            posLaser = _blobB.xy();
-            break;
-    }
+
+    Vec2f posLaser = _blobLaser.xy();
     
     if(posLaser != Vec2f::zero()){
 
         float speed = 1 * (1.0/getAverageFps());
+        
+#if IS_USING_SERIAL
+        
+        updateCarOrientation();
+        
+#endif
         _car.update(posLaser, speed, getWindowSize());
         
     }
@@ -653,23 +703,23 @@ void LCTrackerApp::drawWithProjection()
     }
     
     // Draw laser blob
-    if(_blobG != Vec3f::zero()){
+    if(_blobLaser != Vec3f::zero()){
         gl::color(0.25, 0.25, 0.25);
-        Vec2f posGreen = Vec2f(_blobG.x, _blobG.y);
-        gl::drawStrokedCircle(Vec2f(posGreen.x, posGreen.y), _blobG.z);
+        Vec2f posGreen = Vec2f(_blobLaser.x, _blobLaser.y);
+        gl::drawStrokedCircle(Vec2f(posGreen.x, posGreen.y), _blobLaser.z);
     }
     
     // Draw circles around the R & B
-    if(_blobR != Vec3f::zero()){
+    if(_blobCarFront != Vec3f::zero()){
         gl::color(0.25, 0.25, 0.25);
-        Vec2f posRed = Vec2f(_blobR.x, _blobR.y);
-        gl::drawStrokedCircle(posRed, _blobR.z);
+        Vec2f posRed = Vec2f(_blobCarFront.x, _blobCarFront.y);
+        gl::drawStrokedCircle(posRed, _blobCarFront.z);
     }
     
-    if(_blobB != Vec3f::zero()){
+    if(_blobCarBack != Vec3f::zero()){
         gl::color(0.25, 0.25, 0.25);
-        Vec2f posBlue = Vec2f(_blobB.x, _blobB.y);
-        gl::drawStrokedCircle(Vec2f(posBlue.x, posBlue.y), _blobB.z);
+        Vec2f posBlue = Vec2f(_blobCarBack.x, _blobCarBack.y);
+        gl::drawStrokedCircle(Vec2f(posBlue.x, posBlue.y), _blobCarBack.z);
     }
     
     _car.draw();
@@ -704,20 +754,20 @@ void LCTrackerApp::draw()
         gl::drawSolidCircle(lr, 5);
         
         // Draw the blobs
-        if(_blobG != Vec3f::zero()){
+        if(_blobLaser != Vec3f::zero()){
             gl::color(0.0, 0.35, 0.0);
-            Vec2f posGreen = Vec2f(_blobG.x, _blobG.y);
-            gl::drawStrokedCircle(Vec2f(posGreen.x, posGreen.y), _blobG.z);
+            Vec2f posGreen = Vec2f(_blobLaser.x, _blobLaser.y);
+            gl::drawStrokedCircle(Vec2f(posGreen.x, posGreen.y), _blobLaser.z);
         }
-        if(_blobR != Vec3f::zero()){
+        if(_blobCarFront != Vec3f::zero()){
             gl::color(0.35, 0.0, 0.0);
-            Vec2f posRed = Vec2f(_blobR.x, _blobR.y);
-            gl::drawStrokedCircle(Vec2f(posRed.x, posRed.y), _blobR.z);
+            Vec2f posRed = Vec2f(_blobCarFront.x, _blobCarFront.y);
+            gl::drawStrokedCircle(Vec2f(posRed.x, posRed.y), _blobCarFront.z);
         }
-        if(_blobB != Vec3f::zero()){
+        if(_blobCarBack != Vec3f::zero()){
             gl::color(0.0, 0.0, 0.35);
-            Vec2f posBlue = Vec2f(_blobB.x, _blobB.y);
-            gl::drawStrokedCircle(Vec2f(posBlue.x, posBlue.y), _blobB.z);
+            Vec2f posBlue = Vec2f(_blobCarBack.x, _blobCarBack.y);
+            gl::drawStrokedCircle(Vec2f(posBlue.x, posBlue.y), _blobCarBack.z);
         }
         
         // Draw the RGB        

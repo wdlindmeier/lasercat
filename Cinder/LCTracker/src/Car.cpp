@@ -11,18 +11,91 @@
 #include "cinder/app/App.h"
 #include "cinder/gl/gl.h"
 
-Car::Car(const Vec2f &initialPosition, const Vec2f &initialDirection)
+Car::Car(const Vec2f &initialPosition, const Vec2f &initialDirection, Serial *serial)
 {
+    _serial = serial;
     app::console() << "initialPosition: " << initialPosition << " initialDirection: " << initialDirection << "\n";
-    _size = 50.0f; // Fake car only
-    setPositionAndDirection(initialPosition, initialDirection);
+    setPositionDirectionSize(initialPosition, initialDirection, 50.0f);
 }
 
-void Car::setPositionAndDirection(const Vec2f &initialPosition, const Vec2f &initialDirection)
+// TODO:
+// NOTE:
+// IMPORTANT:
+// If we're using serial, we'll have to call setPositionDirectionSize from the app
+void Car::updateSerialPosition(const Vec2f &posLaser,
+                               const float &relativeSpeed,
+                               const Vec2f &windowSize)
 {
-    _center = initialPosition;
+
+    Vec2f offset = posLaser - _center; //(windowSize * 0.5);
     
-    _v = initialDirection.normalized();
+    float speed = offset.length() * relativeSpeed;
+    offset.normalize();
+    float amtLeftWheel = 0;
+    float amtRightWheel = 0;
+    
+    // Always having one wheel moving forward ensures we're
+    // driving forward. We can't drive backwards.
+    if(offset.x < 0){
+        amtRightWheel = 1;
+        amtLeftWheel = offset.y*-1;
+    }else{
+        amtLeftWheel = 1;
+        amtRightWheel = offset.y*-1;
+    }
+    
+    int lw = amtLeftWheel*255; // -255..255
+    int rw = amtRightWheel*255; // -255..255
+    int sp = (int)speed;
+    std::string directions = "" + boost::lexical_cast<string>((int)lw) + "," +
+                            boost::lexical_cast<string>((int)rw) + "," +
+                            boost::lexical_cast<string>((int)sp) + ",\n";
+    _serial->writeString(directions);
+}
+
+void Car::updateProjectedPosition(const Vec2f &posLaser,
+                                  const float &relativeSpeed,
+                                  const Vec2f &windowSize)
+{
+    // Whats the vector between the _center and the green laser?
+    Vec2f vecToLaser = posLaser - _center;
+    Vec2f vecLaserUnit = vecToLaser.normalized();
+    
+    float vecRads = atan2(_v.y, _v.x);
+    float laserRads = atan2(vecLaserUnit.y, vecLaserUnit.x);
+    float deltaRads = laserRads-vecRads;
+    int degrees = RadiansToDegrees(deltaRads);
+    
+    if(degrees < 0) degrees = 360 + degrees;
+    
+    // Rotate
+    
+    Vec2f newA = RotatePointAroundCenter(_posTrackerA, _center, degrees);
+    Vec2f newB = RotatePointAroundCenter(_posTrackerB, _center, degrees);
+    
+    // Then move forward a little
+    
+    Vec2f newVec = newA - newB; //normalBetweenTrackingPoints();
+    newVec.normalize();
+    
+    float goForwardDist = (_center.distance(posLaser) - (_size*0.5)) * relativeSpeed;
+    Vec2f newCenter = _center + (newVec * goForwardDist);
+    if(Area(_size,_size,windowSize.x-(_size*2),windowSize.y-(_size*2)).contains(newCenter)){
+        
+        // Don't let the car leave the bounds, otherwise we cant track it
+        setPositionDirectionSize(newCenter, newVec, _size);
+    }
+}
+
+void Car::setPositionDirectionSize(const Vec2f &currentPosition,
+                                   const Vec2f &currentDirection,
+                                   const float &size)
+{
+    _size = size;
+
+    _center = currentPosition;
+    
+    _v = currentDirection.normalized();
     
     float theta = DegreesToRadians(-90.0f);
     float vecX = cos(theta) * _v.x - sin(theta) * _v.y;
@@ -34,7 +107,7 @@ void Car::setPositionAndDirection(const Vec2f &initialPosition, const Vec2f &ini
     // Set the posA and posB
     _posTrackerA = _center + (_v * (_size * 0.5));
     _posTrackerB = _center - (_v * (_size * 0.5));
-    
+
 }
 
 void Car::draw()
@@ -79,46 +152,19 @@ void Car::update(const Vec2f &posLaser,
                  const Vec2f &windowSize)
 {
     
-    // Whats the vector between the _center and the green laser?
-    Vec2f vecToLaser = posLaser - _center;
-    Vec2f vecLaserUnit = vecToLaser.normalized();
-    
-    float vecRads = atan2(_v.y, _v.x);
-    float laserRads = atan2(vecLaserUnit.y, vecLaserUnit.x);
-    float deltaRads = laserRads-vecRads;
-    int degrees = RadiansToDegrees(deltaRads);
-
-    if(degrees < 0) degrees = 360 + degrees;
-    
-
-    // ...........
-    // NOTE:
-    // EVERYTHING BELOW will have to be translated into car-speak
-    
-    // NOTE:
-    // We obviously can't pivot the car, we just have turn as far as we can and move forward a minimal amount
-    
-    // Rotate
-    
-    Vec2f newA = RotatePointAroundCenter(_posTrackerA, _center, degrees);
-    Vec2f newB = RotatePointAroundCenter(_posTrackerB, _center, degrees);
-    
-    // Then move forward a little
-
-    Vec2f newVec = newA - newB; //normalBetweenTrackingPoints();
-    newVec.normalize();
-    
-    float goForwardDist = (_center.distance(posLaser) - (_size*0.5)) * relativeSpeed;
-    Vec2f newCenter = _center + (newVec * goForwardDist);
-    if(Area(_size,_size,windowSize.x-(_size*2),windowSize.y-(_size*2)).contains(newCenter)){
-
-        /*
-        _posTrackerA = newA;
-        _posTrackerB = newB;
-        */
+    if(_serial){
         
-        // Don't let the car leave the bounds, otherwise we cant track it
-        setPositionAndDirection(newCenter, newVec);
+        // NOTE: Make sure the app has called setPositionDirectionSize        
+        updateSerialPosition(posLaser,
+                             relativeSpeed,
+                             windowSize);
+        
+    }else{
+        
+        updateProjectedPosition(posLaser,
+                                relativeSpeed,
+                                windowSize);
+        
     }
 
 }
