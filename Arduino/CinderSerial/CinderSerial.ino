@@ -76,6 +76,7 @@ void loop()
       
       if(tkIdx == NumTokenIdxs){
 
+        // -255 .. 255
         if(tokInts[TokenIdxLeft] > 0){
           ULval = tokInts[TokenIdxLeft];
           LLval = 0;
@@ -84,7 +85,7 @@ void loop()
           ULval = 0;
         }
 
-        
+        // -255 .. 255        
         if(tokInts[TokenIdxRight] > 0){
           URval = tokInts[TokenIdxRight];
           LRval = 0;
