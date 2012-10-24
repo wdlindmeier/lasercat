@@ -19,6 +19,8 @@ int buttonState = 0;                     //
 
 IRsend irsend;                           //
 
+
+
 void setup()
 {
   Serial.begin(9600);
@@ -26,17 +28,22 @@ void setup()
   Serial.println("setup done");
 }
 
+unsigned int maxnum = 4000000000;
+
 void loop() 
 {
-  
+  unsigned int data[] = {255,255,255,255}; 
+  boolean last = buttonState;  
   buttonState = digitalRead(buttonPin);
-
+    // check if button pressed
+      //if (buttonState == HIGH && buttonState != last) {    
+        //Serial.println("IR send");
+        // irsend a code
+        irsend.sendSony(maxnum, 32);   // 
+        
+        //irsend.sendRaw(data, 4 ,38);
+        maxnum++;
+      //} 
   
-  // check if button pressed
-  if (buttonState == HIGH) {    
-    Serial.println("IR send");
-    // irsend a code
-    irsend.sendNEC(IRback, 32);   //
-  }
 }
 

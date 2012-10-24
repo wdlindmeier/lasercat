@@ -51,7 +51,7 @@ void setup()
 
 void loop() 
 {  
-    val = 255,255
+   long val = 255255;
   
    if (irrecv.decode(&results)) // start to parse IR result
    {      
