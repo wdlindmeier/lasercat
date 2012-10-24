@@ -41,7 +41,7 @@ void SerialTestApp::setup()
 
 void SerialTestApp::mouseDown( MouseEvent event )
 {
-    serial.writeString("hotdog\n");
+//    serial.writeString("hotdog\n");
 }
 
 void SerialTestApp::mouseDrag( MouseEvent event )
@@ -64,18 +64,19 @@ void SerialTestApp::mouseDrag( MouseEvent event )
         amtRightWheel = offset.y*-1;
     }
     
-    int lw = amtLeftWheel*255; // -255..255
-    int rw = amtRightWheel*255; // -255..255
+    int lw = 255+(amtLeftWheel*255); // 0..255..500
+    int rw = 255+(amtRightWheel*255); // 0..255..500
     int sp = (int)speed;
     string directions = "" + boost::lexical_cast<string>((int)lw) + "," +
                              boost::lexical_cast<string>((int)rw) + "," +
                              boost::lexical_cast<string>((int)sp) + ",\n";
+    console() << directions << "\n";
     serial.writeString(directions);
 }
 
 void SerialTestApp::mouseUp( MouseEvent event )
 {
-    serial.writeString("hamburger\n");
+//    serial.writeString("hamburger\n");
 }
 
 void SerialTestApp::update()
