@@ -27,7 +27,6 @@ void loop()
     char readVal[MAX_CHAR];
     int numChar = Serial.readBytesUntil('\n', readVal, MAX_CHAR);
     String inVal = String(readVal).substring(0,numChar);
-    Serial.println(inVal);
     
     if(inVal.indexOf(',') != -1){ // Steering directions
       
@@ -59,8 +58,13 @@ void loop()
           Serial.println(rVal);          
           */
           
+          Serial.print("lVal: ");
+          Serial.println(lVal);
+          Serial.print("rVal: ");
+          Serial.println(rVal);
+          
           long totalVal = (lVal*(long)1000)+rVal;
-          Serial.println(totalVal);
+//          Serial.println(totalVal);
           irsend.sendNEC(totalVal, 32);
           
         }
