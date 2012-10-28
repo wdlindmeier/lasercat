@@ -11,7 +11,10 @@
 #include "cinder/Area.h"
 #include "cinder/Capture.h"
 
+#define IS_USING_PROJECTION 0
+#define IS_USING_MOUSE_LASER 0
 #define IS_USING_SERIAL 1
+
 #if IS_USING_SERIAL
 #include "cinder/Serial.h"
 #endif
@@ -228,7 +231,8 @@ void LCTrackerApp::setupSerial()
 	}
 	
 	try {
-		Serial::Device dev = Serial::findDeviceByNameContains("tty.usbmodemfa141");
+//		Serial::Device dev = Serial::findDeviceByNameContains("tty.usbmodemfa141");
+        Serial::Device dev = Serial::findDeviceByNameContains("tty.usbserial-A700eCur");        
 		_serial = Serial( dev, 9600);
         _serial.flush();
 	}
@@ -444,12 +448,21 @@ void LCTrackerApp::keyDown( KeyEvent event )
 
 void LCTrackerApp::mouseDown( MouseEvent event)
 {
+    _posMouse = event.getPos();
+    
+#if IS_USING_PROJECTION
     moveClosetTrackingPoint(event);
+#endif
+    
 }
 
 void LCTrackerApp::mouseDrag( MouseEvent event)
 {
+    _posMouse = event.getPos();
+#if IS_USING_PROJECTION
     moveClosetTrackingPoint(event);
+#endif
+    
 }
 
 void LCTrackerApp::mouseUp( MouseEvent event)
@@ -507,7 +520,7 @@ void LCTrackerApp::update()
     
     if( _capture.checkNewFrame() ) {
         
-        if(_isSkewed){
+        if(_isSkewed && IS_USING_PROJECTION){
             
             Surface surfCam = _capture.getSurface();
             // Perform perspective transform
@@ -614,8 +627,13 @@ void LCTrackerApp::update()
 
         _blobCarFront = getLargestContour(&contoursR);
         _blobCarBack = getLargestContour(&contoursB);
+        
+#if IS_USING_MOUSE_LASER
+        _blobLaser = Vec3f(_posMouse.x, _posMouse.y, 10);
+#else
         _blobLaser = getLargestContour(&contoursG); // Assuming we're using the green laser
-                
+#endif
+        
         // Choose the texture to show based on keyboard input.
         if(_showTex == KeyEvent::KEY_r){
             _texTrack = gl::Texture(chR);
@@ -637,14 +655,15 @@ void LCTrackerApp::update()
     
     if(posLaser != Vec2f::zero()){
 
-        float speed = 1 * (1.0/getAverageFps());
+        float fpsSpeed = 1 * (1.0/getAverageFps());
         
 #if IS_USING_SERIAL
-        
+
+        // Update the model of the car
         updateCarOrientation();
         
 #endif
-        _car.update(posLaser, speed, getWindowSize());
+        _car.update(posLaser, fpsSpeed, getWindowSize());
         
     }
 
@@ -722,8 +741,10 @@ void LCTrackerApp::drawWithProjection()
         gl::drawStrokedCircle(Vec2f(posBlue.x, posBlue.y), _blobCarBack.z);
     }
     
+#if !IS_USING_SERIAL
     _car.draw();
-
+#endif
+    
 }
 
 void LCTrackerApp::draw()
@@ -739,6 +760,7 @@ void LCTrackerApp::draw()
         gl::color(1.0, 1.0, 1.0);
         gl::draw(_texTrack, Rectf(Vec2f(0,0), getWindowSize()));
 
+#if IS_USING_PROJECTION
         // Draw the tracking region
         gl::color(0.25, 0.25, 0.25);
         float widthRatio = getWindowWidth()/640.0f;
@@ -752,7 +774,8 @@ void LCTrackerApp::draw()
         gl::drawSolidCircle(ur, 5);
         gl::drawSolidCircle(ll, 5);
         gl::drawSolidCircle(lr, 5);
-        
+#endif
+
         // Draw the blobs
         if(_blobLaser != Vec3f::zero()){
             gl::color(0.0, 0.35, 0.0);
@@ -793,9 +816,10 @@ void LCTrackerApp::draw()
             gl::disableDepthRead();
             gl::disableDepthWrite();
         }
-        
-        _car.draw();
 
+#if !IS_USING_SERIAL
+        _car.draw();
+#endif
         return;
     }
     

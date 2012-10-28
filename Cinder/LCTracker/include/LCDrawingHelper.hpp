@@ -47,6 +47,11 @@ struct ColorHSV {
     unsigned char val;        /* Value between 0 (black) and 255 */
 };
 
+const static inline Vec2f RaiansToVec2f(float rads)
+{
+    return Vec2f(cos(rads), sin(rads));
+}
+
 static struct ColorHSV RGBtoHSV(struct ColorRGB rgb) {
     
     struct ColorHSV hsv;

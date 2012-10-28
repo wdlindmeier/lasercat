@@ -28,6 +28,7 @@ public:
     const Vec2f getTrackerA(){ return _posTrackerA; };
     const Vec2f getTrackerB(){ return _posTrackerB; };
     const Vec2f getCenter(){ return _center; };
+    const Vec2f getVector(){ return _v; };
     void setSize(float newSize){ _size = newSize; };
     const float getSize(){ return _size; };
     void setPositionDirectionSize(const Vec2f &currentPosition,
@@ -50,6 +51,7 @@ protected:
     Vec2f _center;
     float _size;
     Serial *_serial;
+    Vec2f _drawVec;
 };
 
 #endif /* defined(__CarSim__Car__) */

@@ -7,6 +7,8 @@ int MotorRight1=8;
 int MotorRight2=9;
 int MotorLeft1=10;
 int MotorLeft2=11;
+int TrackerLEDFront=13;
+int TrackerLEDBack=12;//...
 
 /*Pin definition to control speed*/
 int SpeedPinL = 6;
@@ -44,6 +46,9 @@ void setup()
 //  pinMode(SpeedPinL, OUTPUT);  // pin 5 (PWM)
 //  pinMode(SpeedPinR, OUTPUT);  // pin 6 (PWM)
 
+  pinMode(TrackerLEDFront, OUTPUT);
+  pinMode(TrackerLEDBack, OUTPUT);
+
   Serial.println("Setup done");
   
 }
@@ -71,6 +76,9 @@ void loop()
   
   frameNum = (frameNum + 1) % 100000000;
   
+  digitalWrite(TrackerLEDFront, HIGH);
+  digitalWrite(TrackerLEDBack, HIGH);
+  
   /*
      // Backward
 
@@ -95,13 +103,6 @@ void loop()
      int rVal = val % 1000;
      int lVal = (val - rVal) * 0.001;
 
-     // Why am I swapping? Is the mixup coming from cinder?     
-     /*
-     int swap = rVal;
-     rVal = lVal;
-     lVal = swap;
-     */
-  
      // The incoming range is 0-510
      /*
      Serial.print("lVal: ");

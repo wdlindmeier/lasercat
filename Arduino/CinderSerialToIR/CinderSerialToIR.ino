@@ -7,7 +7,7 @@
 enum {
   TokenIdxLeft = 0,
   TokenIdxRight,
-  TokenIdxSpeed,
+//  TokenIdxSpeed,
   NumTokenIdxs
 };
 

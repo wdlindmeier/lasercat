@@ -26,7 +26,137 @@ void Car::updateSerialPosition(const Vec2f &posLaser,
                                const float &relativeSpeed,
                                const Vec2f &windowSize)
 {
+    
+    // From sim
+    
+    Vec2f vecToLaser = posLaser - _center;
+    float laserDistance = vecToLaser.length();
+    Vec2f vecLaserUnit = vecToLaser.normalized();
+    
+    float vecRads = atan2(_v.y, _v.x);
+    float laserRads = atan2(vecLaserUnit.y, vecLaserUnit.x);
+    float deltaRads = laserRads-vecRads;
+    
+    _drawVec = RaiansToVec2f(deltaRads) * laserDistance;
+    _drawVec = RotatePointAroundCenter(_drawVec, Vec2f::zero(), -90);
+    
+    app::console() << _drawVec << "\n";
+    
+    Vec2f offset = _drawVec.normalized();
+    float speed = _drawVec.length();
+    
+    // END
 
+    /*
+    Vec2f offset = posLaser - _center;
+    float offsetLength = offset.length();
+    float speed = offset.length();
+    
+    offset.normalize();
+    
+    // Make the offset relative to the car's vector
+    offset -= _v;
+    
+    _drawVec = offset * offsetLength;
+    _drawVec = RotatePointAroundCenter(_drawVec, Vec2f::zero(), -90);
+    */
+    
+    float amtLeftWheel = 0;
+    float amtRightWheel = 0;
+    
+    // Turning scheme:
+    // 0-90°
+    // 0 == other wheel moves forward @ speed
+    // 90 == other wheel moves backwards @ speed
+    
+    // Never account for moving backwards.
+    // Hard left or right is all we can do.
+    float yRange = (MAX((offset.y*-1), 0.0)*2.0f) - 1.0f; // -1..1
+    
+    // Always having one wheel moving forward ensures we're
+    // driving forward. We can't drive backwards.
+    if(offset.x < 0){
+        amtRightWheel = 1;
+        amtLeftWheel = yRange;
+    }else{
+        amtLeftWheel = 1;
+        amtRightWheel = yRange;
+    }
+    
+    /*
+    // Making the lw / rw amount a function of the speed
+    // TODO: make this a product of the car size. (e.g. _car.getSize() * 5)
+    const static int MAX_SPEED = 200; // This is in px. It will slow down w/in that range
+    
+    float speedScalar = MIN((speed/(float)MAX_SPEED), 1.0);
+    // Always give it enough speed (50%) to move if the distance is greater than 20
+    if(speed > 20) speedScalar = 0.5;
+    
+    amtLeftWheel *= speedScalar;
+    amtRightWheel *= speedScalar;
+    */
+    
+    int lw = 255+(amtLeftWheel*255); // 0..255..500
+    int rw = 255+(amtRightWheel*255); // 0..255..500
+    
+#define WRITE_DIRECTLY_TO_CAR   1
+    
+#if WRITE_DIRECTLY_TO_CAR
+    
+    long val = (lw*(long)1000)+rw;
+    int rVal = val % 1000;
+    int lVal = (val - rVal) * 0.001;
+    
+    /*
+    int lDirection = lVal >= 255 ? 1 : -1;
+    int rDirection = rVal >= 255 ? 1 : -1;
+    int lAbsVal = abs(lVal-255);
+    int rAbsVal = abs(rVal-255);
+    
+    _ardLDir = lDirection;
+    _ardRDir = rDirection;
+    _ardLVal = lAbsVal;
+    _ardRVal = rAbsVal;
+    */
+
+    long totalVal = (lVal*(long)1000)+rVal;
+    string directions = "" + boost::lexical_cast<string>((long)totalVal) + "\n";
+    _serial->writeString(directions);
+    
+#else
+    
+    // We have an arduino intermediary on the Serial port
+    
+    //    int sp = (int)speed;
+    string directions = "" + boost::lexical_cast<string>((int)lw) + "," +
+    boost::lexical_cast<string>((int)rw) + ",\n";// +
+    //                             boost::lexical_cast<string>((int)sp) + ",\n";
+    app::console() << directions << "\n";
+    _serial->writeString(directions);
+
+#endif
+    
+    // Serial code
+    /*
+     long val = (lw*(long)1000)+rw;
+     int rVal = val % 1000;
+     int lVal = (val - rVal) * 0.001;
+     
+     int lDirection = lVal >= 255 ? 1 : -1;
+     int rDirection = rVal >= 255 ? 1 : -1;
+     int lAbsVal = abs(lVal-255);
+     int rAbsVal = abs(rVal-255);
+     
+     console() << "lw : " << lw << " rw: " << rw;
+     console() << " lAbsVal : " << lAbsVal << " rAbsVal: " << rAbsVal << "\n";
+     
+     _ardLDir = lDirection;
+     _ardRDir = rDirection;
+     _ardLVal = lAbsVal;
+     _ardRVal = rAbsVal;
+     */
+
+    /*
     Vec2f offset = posLaser - _center; //(windowSize * 0.5);
     
     float speed = offset.length() * relativeSpeed;
@@ -51,6 +181,7 @@ void Car::updateSerialPosition(const Vec2f &posLaser,
                             boost::lexical_cast<string>((int)rw) + "," +
                             boost::lexical_cast<string>((int)sp) + ",\n";
     _serial->writeString(directions);
+    */
 }
 
 void Car::updateProjectedPosition(const Vec2f &posLaser,
@@ -59,11 +190,21 @@ void Car::updateProjectedPosition(const Vec2f &posLaser,
 {
     // Whats the vector between the _center and the green laser?
     Vec2f vecToLaser = posLaser - _center;
+    float laserDistance = vecToLaser.length();
     Vec2f vecLaserUnit = vecToLaser.normalized();
     
     float vecRads = atan2(_v.y, _v.x);
     float laserRads = atan2(vecLaserUnit.y, vecLaserUnit.x);
     float deltaRads = laserRads-vecRads;
+    
+    _drawVec = RaiansToVec2f(deltaRads) * laserDistance;
+    _drawVec = RotatePointAroundCenter(_drawVec, Vec2f::zero(), -90);
+    
+    Vec2f offset = _drawVec.normalized();
+    //float yRange = (MAX((offset.y*-1), 0.0)*2.0f) - 1.0f; // -1..1
+    app::console() << offset << "\n";
+
+    
     int degrees = RadiansToDegrees(deltaRads);
     
     if(degrees < 0) degrees = 360 + degrees;
@@ -130,6 +271,12 @@ void Car::draw()
     
     gl::color(0, 0, 1);
     gl::drawSolidCircle(_posTrackerB, 10.0f);
+    
+    // Draw the vector
+    gl::color(1, 1, 1);
+    glLineWidth(2);
+    Vec2f vecStart = Vec2f(600, 100);
+    gl::drawLine(vecStart, vecStart+_drawVec);
     
 }
 
