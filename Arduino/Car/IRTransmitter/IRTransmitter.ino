@@ -14,6 +14,8 @@ long IRcny70=0x00FFA857;        //CNY70 automode
 long IRAutorun=0x00FF906F;      //sonar automode
 long IRturnsmallleft= 0x00FF22DD; 
 
+long Control = 255255;
+
 const int buttonPin = 4;                 // 
 int buttonState = 0;                     // 
 
@@ -35,15 +37,15 @@ void loop()
   unsigned int data[] = {255,255,255,255}; 
   boolean last = buttonState;  
   buttonState = digitalRead(buttonPin);
-    // check if button pressed
-      //if (buttonState == HIGH && buttonState != last) {    
-        //Serial.println("IR send");
-        // irsend a code
-        irsend.sendSony(maxnum, 32);   // 
-        
-        //irsend.sendRaw(data, 4 ,38);
-        maxnum++;
-      //} 
+  // check if button pressed
+  //if (buttonState == HIGH && buttonState != last) {    
+  //Serial.println("IR send");
+  // irsend a code
+  irsend.sendNEC(, 32);   // 
+  
+  //irsend.sendRaw(data, 4 ,38);
+  maxnum++;
+//} 
   
 }
 
