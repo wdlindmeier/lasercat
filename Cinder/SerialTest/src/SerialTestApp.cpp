@@ -17,6 +17,11 @@ class SerialTestApp : public AppBasic {
 	void draw();
     Serial serial;
     Vec2f mousePos;
+    
+    int _ardLDir;
+    int _ardRDir;
+    int _ardLVal;
+    int _ardRVal;
 };
 
 void SerialTestApp::setup()
@@ -73,7 +78,27 @@ void SerialTestApp::mouseDrag( MouseEvent event )
 
     console() << directions << "\n";
     serial.writeString(directions);
-}   
+    
+    // SIM Arduino code
+    long val = (lw*(long)1000)+rw;
+    int rVal = val % 1000;
+    int lVal = (val - rVal) * 0.001;
+    
+    int lDirection = lVal >= 255 ? 1 : -1;
+    int rDirection = rVal >= 255 ? 1 : -1;
+    int lAbsVal = abs(lVal-255);
+    int rAbsVal = abs(rVal-255);
+
+    console() << "lw : " << lw << " rw: " << rw;
+    console() << " lAbsVal : " << lAbsVal << " rAbsVal: " << rAbsVal << "\n";
+    
+    
+    _ardLDir = lDirection;
+    _ardRDir = rDirection;
+    _ardLVal = lAbsVal;
+    _ardRVal = rAbsVal;
+
+}
 
 void SerialTestApp::mouseUp( MouseEvent event )
 {
@@ -94,6 +119,40 @@ void SerialTestApp::draw()
     gl::color(1, 0, 0);
     glLineWidth(5);
     gl::drawLine(getWindowCenter(), mousePos);
+    
+    glLineWidth(2.0);
+
+    // Draw the wheels
+    // L
+    if(_ardLDir < 0){
+        // Backward
+        gl::color(Color8u(_ardLVal, 0, 0));
+        gl::drawSolidCircle(Vec2f(540,440), 10);
+    }else{
+        // Forward
+        gl::color(Color8u(_ardLVal, 0, 0));
+        gl::drawSolidCircle(Vec2f(540,400), 10);
+    }
+    gl::color(255, 255, 255);
+    gl::drawStrokedCircle(Vec2f(540,400), 10);
+    gl::color(255, 255, 255);
+    gl::drawStrokedCircle(Vec2f(540,440), 10);
+
+    // R
+    if(_ardRDir < 0){
+        gl::color(Color8u(_ardRVal, 0, 0));
+        gl::drawSolidCircle(Vec2f(580,440), 10);
+    }else{
+        // Forward
+        gl::color(Color8u(_ardRVal, 0, 0));
+        gl::drawSolidCircle(Vec2f(580,400), 10);
+    }
+    // Bakward
+    gl::color(255, 255, 255);
+    gl::drawStrokedCircle(Vec2f(580,400), 10);
+    gl::color(255, 255, 255);
+    gl::drawStrokedCircle(Vec2f(580,440), 10);
+
 }
 
 
