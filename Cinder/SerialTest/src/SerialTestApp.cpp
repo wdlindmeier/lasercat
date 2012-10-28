@@ -33,8 +33,9 @@ void SerialTestApp::setup()
 	}
 	
 	try {
-		Serial::Device dev = Serial::findDeviceByNameContains("tty.usbmodemfa141");
-		serial = Serial( dev, 9600);
+		//Serial::Device dev = Serial::findDeviceByNameContains("tty.usbmodemfa141");
+		Serial::Device dev = Serial::findDeviceByNameContains("tty.usbmodem1411");// hard code this for Harry's port
+        serial = Serial( dev, 9600);
         serial.flush();
 	}
 	catch( ... ) {
@@ -87,10 +88,9 @@ void SerialTestApp::mouseDrag( MouseEvent event )
     
     int lw = 255+(amtLeftWheel*255); // 0..255..500
     int rw = 255+(amtRightWheel*255); // 0..255..500
-//    int sp = (int)speed;
     string directions = "" + boost::lexical_cast<string>((int)lw) + "," +
-                             boost::lexical_cast<string>((int)rw) + ",\n";// +
-//                             boost::lexical_cast<string>((int)sp) + ",\n";
+                             boost::lexical_cast<string>((int)rw) + ",\n";
+
     console() << directions << "\n";
     serial.writeString(directions);
     
