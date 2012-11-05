@@ -14,6 +14,7 @@
 Car::Car(const Vec2f &initialPosition, const Vec2f &initialDirection, Serial *serial)
 {
     _serial = serial;
+    _steeringThreshold = 0.0f;
     app::console() << "initialPosition: " << initialPosition << " initialDirection: " << initialDirection << "\n";
     setPositionDirectionSize(initialPosition, initialDirection, 50.0f);
 }
@@ -26,9 +27,7 @@ void Car::updateSerialPosition(const Vec2f &posLaser,
                                const float &relativeSpeed,
                                const Vec2f &windowSize)
 {
-    
-    // From sim
-    
+  
     Vec2f vecToLaser = posLaser - _center;
     float laserDistance = vecToLaser.length();
     Vec2f vecLaserUnit = vecToLaser.normalized();
@@ -39,28 +38,10 @@ void Car::updateSerialPosition(const Vec2f &posLaser,
     
     _drawVec = RaiansToVec2f(deltaRads) * laserDistance;
     _drawVec = RotatePointAroundCenter(_drawVec, Vec2f::zero(), -90);
-    
-    app::console() << _drawVec << "\n";
-    
+
     Vec2f offset = _drawVec.normalized();
     float speed = _drawVec.length();
-    
-    // END
 
-    /*
-    Vec2f offset = posLaser - _center;
-    float offsetLength = offset.length();
-    float speed = offset.length();
-    
-    offset.normalize();
-    
-    // Make the offset relative to the car's vector
-    offset -= _v;
-    
-    _drawVec = offset * offsetLength;
-    _drawVec = RotatePointAroundCenter(_drawVec, Vec2f::zero(), -90);
-    */
-    
     float amtLeftWheel = 0;
     float amtRightWheel = 0;
     
@@ -69,9 +50,20 @@ void Car::updateSerialPosition(const Vec2f &posLaser,
     // 0 == other wheel moves forward @ speed
     // 90 == other wheel moves backwards @ speed
     
+    
+    // Multiply the yRange by the steering threshold,
+    // which should be in the range of -1..1.
+    // This gives us control over how much power the "other" wheel gets when we're
+    // turning, which is really a pysics question, so we'll just eyeball it in-situ.
+    float calibratedY = offset.y * (1.0 + _steeringThreshold); // 0..2
+    // W/OUT CALIBRATION:
+    // float calibratedY = offset.y;
+    
     // Never account for moving backwards.
     // Hard left or right is all we can do.
-    float yRange = (MAX((offset.y*-1), 0.0)*2.0f) - 1.0f; // -1..1
+    float yRange = (MAX((calibratedY*-1), 0.0)*2.0f) - 1.0f; // -1..1
+    
+    //yRange *= _steeringThreshold;
     
     // Always having one wheel moving forward ensures we're
     // driving forward. We can't drive backwards.
@@ -106,18 +98,6 @@ void Car::updateSerialPosition(const Vec2f &posLaser,
     long val = (lw*(long)1000)+rw;
     int rVal = val % 1000;
     int lVal = (val - rVal) * 0.001;
-    
-    /*
-    int lDirection = lVal >= 255 ? 1 : -1;
-    int rDirection = rVal >= 255 ? 1 : -1;
-    int lAbsVal = abs(lVal-255);
-    int rAbsVal = abs(rVal-255);
-    
-    _ardLDir = lDirection;
-    _ardRDir = rDirection;
-    _ardLVal = lAbsVal;
-    _ardRVal = rAbsVal;
-    */
 
     long totalVal = (lVal*(long)1000)+rVal;
     string directions = "" + boost::lexical_cast<string>((long)totalVal) + "\n";
@@ -135,53 +115,7 @@ void Car::updateSerialPosition(const Vec2f &posLaser,
     _serial->writeString(directions);
 
 #endif
-    
-    // Serial code
-    /*
-     long val = (lw*(long)1000)+rw;
-     int rVal = val % 1000;
-     int lVal = (val - rVal) * 0.001;
-     
-     int lDirection = lVal >= 255 ? 1 : -1;
-     int rDirection = rVal >= 255 ? 1 : -1;
-     int lAbsVal = abs(lVal-255);
-     int rAbsVal = abs(rVal-255);
-     
-     console() << "lw : " << lw << " rw: " << rw;
-     console() << " lAbsVal : " << lAbsVal << " rAbsVal: " << rAbsVal << "\n";
-     
-     _ardLDir = lDirection;
-     _ardRDir = rDirection;
-     _ardLVal = lAbsVal;
-     _ardRVal = rAbsVal;
-     */
 
-    /*
-    Vec2f offset = posLaser - _center; //(windowSize * 0.5);
-    
-    float speed = offset.length() * relativeSpeed;
-    offset.normalize();
-    float amtLeftWheel = 0;
-    float amtRightWheel = 0;
-    
-    // Always having one wheel moving forward ensures we're
-    // driving forward. We can't drive backwards.
-    if(offset.x < 0){
-        amtRightWheel = 1;
-        amtLeftWheel = offset.y*-1;
-    }else{
-        amtLeftWheel = 1;
-        amtRightWheel = offset.y*-1;
-    }
-    
-    int lw = amtLeftWheel*255; // -255..255
-    int rw = amtRightWheel*255; // -255..255
-    int sp = (int)speed;
-    std::string directions = "" + boost::lexical_cast<string>((int)lw) + "," +
-                            boost::lexical_cast<string>((int)rw) + "," +
-                            boost::lexical_cast<string>((int)sp) + ",\n";
-    _serial->writeString(directions);
-    */
 }
 
 void Car::updateProjectedPosition(const Vec2f &posLaser,
@@ -202,7 +136,7 @@ void Car::updateProjectedPosition(const Vec2f &posLaser,
     
     Vec2f offset = _drawVec.normalized();
     //float yRange = (MAX((offset.y*-1), 0.0)*2.0f) - 1.0f; // -1..1
-    app::console() << offset << "\n";
+    // app::console() << offset << "\n";
 
     
     int degrees = RadiansToDegrees(deltaRads);

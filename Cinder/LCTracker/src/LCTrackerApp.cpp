@@ -131,7 +131,7 @@ private:
     bool        _isDrawingProjection;
     bool        _isSkewed;
     LaserMode   _laserMode;
-
+    float       _steeringThreshold;
     SimpleGUI   *gui;
     string      _settingsPath;
 #if IS_USING_SERIAL
@@ -149,7 +149,8 @@ _blobCarBack(0,0,0),
 _labelFPS(0),
 _showTex(0),
 _isDrawingProjection(0),
-_isSkewed(1)
+_isSkewed(1),
+_steeringThreshold(0)
 {
 
 };
@@ -214,6 +215,8 @@ void LCTrackerApp::setupGUI()
     gui->addParam("Blue Max Sat", &_ccBlue.satMax, 0, 255, _ccBlue.satMax);
     gui->addParam("Blue Min Val", &_ccBlue.valMin, 0, 255, _ccBlue.valMin);
     gui->addParam("Blue Max Val", &_ccBlue.valMax, 0, 255, _ccBlue.valMax);
+    
+    gui->addParam("Steering Thresh", &_steeringThreshold, -1.0f, 1.0f, _steeringThreshold);
     
     _labelFPS = gui->addLabel("FPS");
     
@@ -307,7 +310,10 @@ void LCTrackerApp::saveSettings()
     oStream << lr;
     
     // Window position and size
-    oStream << string(boost::lexical_cast<string>((int)getWindowPosX()) + "," + boost::lexical_cast<string>((int)getWindowPosY()) + "," + boost::lexical_cast<string>((int)getWindowWidth()) + "," + boost::lexical_cast<string>((int)getWindowHeight()));
+    oStream << string(boost::lexical_cast<string>((int)getWindowPosX()) + "," + boost::lexical_cast<string>((int)getWindowPosY()) + "," + boost::lexical_cast<string>((int)getWindowWidth()) + "," + boost::lexical_cast<string>((int)getWindowHeight())) + "\n";
+    
+    // Steering threshold
+    oStream << boost::lexical_cast<string>((float)_steeringThreshold);
 
     oStream.close();
 }
@@ -360,7 +366,7 @@ void LCTrackerApp::readSettings()
                     _trackingRegion[pointIdx] = Vec2f(x,y);
                     console() << "trackingRegion " << pointIdx << " : " << _trackingRegion[pointIdx] << "\n";
                 }
-            }else{
+            }else if(i<8){
                 // Window size and position
                 if(tokens.size() == 4){
                     int x = boost::lexical_cast<int>(tokens[0]);
@@ -370,6 +376,9 @@ void LCTrackerApp::readSettings()
                     setWindowPos(x, y);
                     setWindowSize(w, h);
                 }
+            }else{
+                // Steering threshold
+                _steeringThreshold = boost::lexical_cast<float>(tokens[0]);
             }
         }
         
@@ -661,6 +670,8 @@ void LCTrackerApp::update()
 
         // Update the model of the car
         updateCarOrientation();
+        
+        _car.setSteeringThreshold(_steeringThreshold);
         
 #endif
         _car.update(posLaser, fpsSpeed, getWindowSize());

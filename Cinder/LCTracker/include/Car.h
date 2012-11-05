@@ -29,7 +29,8 @@ public:
     const Vec2f getTrackerB(){ return _posTrackerB; };
     const Vec2f getCenter(){ return _center; };
     const Vec2f getVector(){ return _v; };
-    void setSize(float newSize){ _size = newSize; };
+    void setSize(const float &newSize){ _size = newSize; };
+    void setSteeringThreshold(const float &thresh){ _steeringThreshold = thresh; };
     const float getSize(){ return _size; };
     void setPositionDirectionSize(const Vec2f &currentPosition,
                                   const Vec2f &currentDirection,
@@ -52,6 +53,7 @@ protected:
     float _size;
     Serial *_serial;
     Vec2f _drawVec;
+    float _steeringThreshold;
 };
 
 #endif /* defined(__CarSim__Car__) */
