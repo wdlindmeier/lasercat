@@ -40,7 +40,7 @@ void Car::updateSerialPosition(const Vec2f &posLaser,
     _drawVec = RotatePointAroundCenter(_drawVec, Vec2f::zero(), -90);
 
     Vec2f offset = _drawVec.normalized();
-    float speed = _drawVec.length();
+    // float speed = _drawVec.length();
 
     float amtLeftWheel = 0;
     float amtRightWheel = 0;
@@ -50,20 +50,14 @@ void Car::updateSerialPosition(const Vec2f &posLaser,
     // 0 == other wheel moves forward @ speed
     // 90 == other wheel moves backwards @ speed
     
+    float y = offset.y;
     
-    // Multiply the yRange by the steering threshold,
-    // which should be in the range of -1..1.
-    // This gives us control over how much power the "other" wheel gets when we're
-    // turning, which is really a pysics question, so we'll just eyeball it in-situ.
-    float calibratedY = offset.y * (1.0 + _steeringThreshold); // 0..2
-    // W/OUT CALIBRATION:
-    // float calibratedY = offset.y;
+    y *= _steeringThreshold; //(_steeringThreshold + 1.0);
     
     // Never account for moving backwards.
     // Hard left or right is all we can do.
-    float yRange = (MAX((calibratedY*-1), 0.0)*2.0f) - 1.0f; // -1..1
-    
-    //yRange *= _steeringThreshold;
+    float yRange = (MAX((y*-1), 0.0)*2.0f) - 1.0f; // -1..1
+
     
     // Always having one wheel moving forward ensures we're
     // driving forward. We can't drive backwards.

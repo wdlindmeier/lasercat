@@ -150,7 +150,7 @@ _labelFPS(0),
 _showTex(0),
 _isDrawingProjection(0),
 _isSkewed(1),
-_steeringThreshold(0)
+_steeringThreshold(1)
 {
 
 };
@@ -216,7 +216,7 @@ void LCTrackerApp::setupGUI()
     gui->addParam("Blue Min Val", &_ccBlue.valMin, 0, 255, _ccBlue.valMin);
     gui->addParam("Blue Max Val", &_ccBlue.valMax, 0, 255, _ccBlue.valMax);
     
-    gui->addParam("Steering Thresh", &_steeringThreshold, -1.0f, 1.0f, _steeringThreshold);
+    gui->addParam("Steering Thresh", &_steeringThreshold, -1.0f, 2.0f, _steeringThreshold);
     
     _labelFPS = gui->addLabel("FPS");
     
