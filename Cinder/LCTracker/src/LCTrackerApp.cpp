@@ -230,12 +230,13 @@ void LCTrackerApp::setupSerial()
     
 	const vector<Serial::Device> &devices( Serial::getDevices() );
 	for( vector<Serial::Device>::const_iterator deviceIt = devices.begin(); deviceIt != devices.end(); ++deviceIt ) {
+        // Log out all of the serial devices
 		console() << "Device: " << deviceIt->getName() << endl;
 	}
 	
 	try {
-//		Serial::Device dev = Serial::findDeviceByNameContains("tty.usbmodemfa141");
-        Serial::Device dev = Serial::findDeviceByNameContains("tty.usbserial-A700eCur");        
+        // Select the serial device that your XBee is connected to
+        Serial::Device dev = Serial::findDeviceByNameContains("tty.usbserial-A5012T81");
 		_serial = Serial( dev, 9600);
         _serial.flush();
 	}
@@ -250,7 +251,7 @@ void LCTrackerApp::setupSerial()
 void LCTrackerApp::setupCapture()
 {
     
-    // list out the devices
+    // list out the capture devices
     Capture::DeviceRef useDevice;
     bool useDefaultDevice = true;
 	std::vector<Capture::DeviceRef> devices( Capture::getDevices() );

@@ -70,11 +70,11 @@ void Car::updateSerialPosition(const Vec2f &posLaser,
     }
     
     /*
-    // Making the lw / rw amount a function of the speed
-    // TODO: make this a product of the car size. (e.g. _car.getSize() * 5)
-    const static int MAX_SPEED = 200; // This is in px. It will slow down w/in that range
-    
+     // We're not using the speed, but we could use it as a wheel power multiplier
+
+     const static int MAX_SPEED = 200; // This is in px. It will slow down w/in that range
     float speedScalar = MIN((speed/(float)MAX_SPEED), 1.0);
+     
     // Always give it enough speed (50%) to move if the distance is greater than 20
     if(speed > 20) speedScalar = 0.5;
     
@@ -85,9 +85,17 @@ void Car::updateSerialPosition(const Vec2f &posLaser,
     int lw = 255+(amtLeftWheel*255); // 0..255..500
     int rw = 255+(amtRightWheel*255); // 0..255..500
     
+    
+    // Write the directions out to serial
+    
 #define WRITE_DIRECTLY_TO_CAR   1
     
 #if WRITE_DIRECTLY_TO_CAR
+    
+    // Writing the l/r values as a long.
+    // NOTE: This is a hold-over from using IR as a transport
+    // technology (IR sends longs) but it could be changed
+    // to an arbitrary format w/ serial.
     
     long val = (lw*(long)1000)+rw;
     int rVal = val % 1000;
@@ -100,11 +108,8 @@ void Car::updateSerialPosition(const Vec2f &posLaser,
 #else
     
     // We have an arduino intermediary on the Serial port
-    
-    //    int sp = (int)speed;
     string directions = "" + boost::lexical_cast<string>((int)lw) + "," +
-    boost::lexical_cast<string>((int)rw) + ",\n";// +
-    //                             boost::lexical_cast<string>((int)sp) + ",\n";
+                             boost::lexical_cast<string>((int)rw) + ",\n";
     app::console() << directions << "\n";
     _serial->writeString(directions);
 
@@ -127,11 +132,6 @@ void Car::updateProjectedPosition(const Vec2f &posLaser,
     
     _drawVec = RaiansToVec2f(deltaRads) * laserDistance;
     _drawVec = RotatePointAroundCenter(_drawVec, Vec2f::zero(), -90);
-    
-    Vec2f offset = _drawVec.normalized();
-    //float yRange = (MAX((offset.y*-1), 0.0)*2.0f) - 1.0f; // -1..1
-    // app::console() << offset << "\n";
-
     
     int degrees = RadiansToDegrees(deltaRads);
     
@@ -216,6 +216,7 @@ Vec2f Car::normalBetweenTrackingPoints()
     Vec2f vecCar(posA.x - posB.x, posA.y - posB.y);
     vecCar.normalize();
     
+    // I'm guessing there's a better way to do this.
     float theta = DegreesToRadians(90.0f);
     float normX = cos(theta) * vecCar.x - sin(theta) * vecCar.y;
     float normY = sin(theta) * vecCar.x + cos(theta) * vecCar.y;
