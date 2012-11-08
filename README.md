@@ -2,6 +2,7 @@ lasercat
 ========
 
 PComp Midterm Project for ITP
+
 Authors: William Lindmeier, Harry How and Max Ma
 
 More information on this project can be found here:
