@@ -14,3 +14,7 @@
 Cinder/*/xcode/build
 Cinder/*/xcode/LCTracker.xcodeproj/xcuserdata/*.xcuserdatad
 Cinder/*/xcode/LCTracker.xcodeproj/project.xcworkspace
+
+.DS_Store
+*/.DS_Store
+*/**/.DS_Store
